@@ -1,0 +1,8 @@
+ground,0,0
+hole,1,0
+ground,0,1
+ground,0,-1
+ground,-1,0
+
+1
+
