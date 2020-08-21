@@ -1,0 +1,10 @@
+ground,0,0
+slope,1,0,1,left
+ground,2,0,1
+ground,2,1,1
+slope,2,2,2,down
+hole,2,3,2
+
+2
+2
+2
