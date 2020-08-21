@@ -5,12 +5,13 @@ use std::io;
 //     exit: Location,
 // }
 
-// enum Corner {
-//     Northeast,
-//     Southeast,
-//     Southwest,
-//     Northwest,
-// }
+#[derive(Clone, Copy)]
+enum Corner {
+    Northeast,
+    Southeast,
+    Southwest,
+    Northwest,
+}
 
 enum Terrain {
     Hole,
@@ -26,7 +27,7 @@ enum Terrain {
 struct Tile {
     terrain: Terrain,
     elevation: i32,
-    // corner: Option<Corner>,
+    corner: Option<Corner>,
 }
 
 #[derive(Clone)]
@@ -65,7 +66,7 @@ fn interpret_map_and_moves(
                 Tile {
                     terrain: Terrain::Hole,
                     elevation: items.get(3).unwrap_or(&"0").parse::<i32>().unwrap(),
-                    // corner: None,
+                    corner: None,
                 },
             );
         } else if items[0] == "ground" {
@@ -77,7 +78,13 @@ fn interpret_map_and_moves(
                 Tile {
                     terrain: Terrain::Ground,
                     elevation: items.get(3).unwrap_or(&"0").parse::<i32>().unwrap(),
-                    // corner: None,
+                    corner: match items.get(4).unwrap_or(&"") {
+                        &"nw" => Some(Corner::Northwest),
+                        &"ne" => Some(Corner::Northeast),
+                        &"se" => Some(Corner::Southeast),
+                        &"sw" => Some(Corner::Southwest),
+                        _ => None,
+                    },
                 },
             );
         } else if items[0] == "slope" {
@@ -95,7 +102,7 @@ fn interpret_map_and_moves(
                         _ => panic!("Unknown slope direction"),
                     }),
                     elevation: items.get(3).unwrap_or(&"0").parse::<i32>().unwrap(),
-                    // corner: None,
+                    corner: None,
                 },
             );
         }
@@ -197,6 +204,30 @@ fn try_move(
         } else {
             // identify potential next position
             let mut next_position = position_copy.clone();
+            if let Some(corner) = cur_tile.unwrap().corner {
+                match corner {
+                    Corner::Northwest => match direction {
+                        Direction::Up => direction = Direction::Right,
+                        Direction::Left => direction = Direction::Down,
+                        _ => (),
+                    },
+                    Corner::Northeast => match direction {
+                        Direction::Up => direction = Direction::Left,
+                        Direction::Right => direction = Direction::Down,
+                        _ => (),
+                    },
+                    Corner::Southeast => match direction {
+                        Direction::Down => direction = Direction::Left,
+                        Direction::Right => direction = Direction::Up,
+                        _ => (),
+                    },
+                    Corner::Southwest => match direction {
+                        Direction::Down => direction = Direction::Right,
+                        Direction::Left => direction = Direction::Up,
+                        _ => (),
+                    },
+                }
+            }
             match direction {
                 Direction::Up => next_position.y += 1,
                 Direction::Down => next_position.y -= 1,
@@ -206,7 +237,32 @@ fn try_move(
             // move
             move_copy.distance -= 1;
             if let Some(next_tile) = map.get(&next_position) {
-                if cur_tile.unwrap().elevation >= next_tile.elevation {
+                // you can run into the back of a corner
+                let will_hit_corner = cur_tile.unwrap().elevation == next_tile.elevation
+                    && next_tile.corner.is_some()
+                    && match next_tile.corner.unwrap() {
+                        Corner::Northwest => match direction {
+                            Direction::Down => true,
+                            Direction::Right => true,
+                            _ => false,
+                        },
+                        Corner::Northeast => match direction {
+                            Direction::Down => true,
+                            Direction::Left => true,
+                            _ => false,
+                        },
+                        Corner::Southeast => match direction {
+                            Direction::Up => true,
+                            Direction::Left => true,
+                            _ => false,
+                        },
+                        Corner::Southwest => match direction {
+                            Direction::Up => true,
+                            Direction::Right => true,
+                            _ => false,
+                        },
+                    };
+                if cur_tile.unwrap().elevation >= next_tile.elevation && !will_hit_corner {
                     position_copy = next_position;
                     if let Some(slope_dir) = match next_tile.terrain {
                         Terrain::Slope(d) => Some(d),
