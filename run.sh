@@ -2,10 +2,6 @@
 
 set -euo pipefail
 
-osascript -e '
-activate application "Golf Peaks"
-'
-
 ls -1 levels/01-0* | while read LEVEL; do
     cargo run -q -- --applescript < $LEVEL | osascript -i
     sleep 3

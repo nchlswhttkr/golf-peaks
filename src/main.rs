@@ -32,6 +32,7 @@ struct Tile {
 #[derive(Clone)]
 pub struct Move {
     distance: i32,
+    airborne: i32,
 }
 
 #[derive(Clone, PartialEq, Copy)]
@@ -105,6 +106,7 @@ fn interpret_map_and_moves(
             let s: Vec<&str> = m.split(",").collect();
             return Move {
                 distance: s[0].parse::<i32>().unwrap(),
+                airborne: s.get(1).unwrap_or(&"0").parse::<i32>().unwrap(),
             };
         })
         .collect();
@@ -166,33 +168,53 @@ fn try_move(
     let mut cur_tile = map.get(&position_copy);
     let mut in_bounds = cur_tile.is_some();
     let mut stopped = move_copy.distance <= 0
+        && move_copy.airborne <= 0
         && match cur_tile.unwrap().terrain {
             Terrain::Hole => true,
             Terrain::Ground => true,
             Terrain::Slope(_) => false,
         };
     while in_bounds && !stopped {
-        // identify potential next position
-        let mut next_position = position_copy.clone();
-        match direction {
-            Direction::Up => next_position.y += 1,
-            Direction::Down => next_position.y -= 1,
-            Direction::Left => next_position.x -= 1,
-            Direction::Right => next_position.x += 1,
-        }
-
-        // move
-        move_copy.distance -= 1;
-        if let Some(next_tile) = map.get(&next_position) {
-            if cur_tile.unwrap().elevation >= next_tile.elevation {
-                position_copy = next_position;
-                if let Some(slope_dir) = match next_tile.terrain {
-                    Terrain::Slope(d) => Some(d),
-                    _ => None,
-                } {
-                    direction = slope_dir;
+        if move_copy.airborne > 0 {
+            let mut next_position = position_copy.clone();
+            match direction {
+                Direction::Up => next_position.y += move_copy.airborne,
+                Direction::Down => next_position.y -= move_copy.airborne,
+                Direction::Left => next_position.x -= move_copy.airborne,
+                Direction::Right => next_position.x += move_copy.airborne,
+            };
+            move_copy.airborne = 0;
+            if let Some(landing_tile) = map.get(&next_position) {
+                match landing_tile.terrain {
+                    // face direction of landing slope
+                    Terrain::Slope(d) => direction = d,
+                    _ => (),
                 }
-            } else if cur_tile.unwrap().elevation == next_tile.elevation - 1
+                position_copy = next_position;
+            } else {
+                return None;
+            }
+        } else {
+            // identify potential next position
+            let mut next_position = position_copy.clone();
+            match direction {
+                Direction::Up => next_position.y += 1,
+                Direction::Down => next_position.y -= 1,
+                Direction::Left => next_position.x -= 1,
+                Direction::Right => next_position.x += 1,
+            }
+            // move
+            move_copy.distance -= 1;
+            if let Some(next_tile) = map.get(&next_position) {
+                if cur_tile.unwrap().elevation >= next_tile.elevation {
+                    position_copy = next_position;
+                    if let Some(slope_dir) = match next_tile.terrain {
+                        Terrain::Slope(d) => Some(d),
+                        _ => None,
+                    } {
+                        direction = slope_dir;
+                    }
+                } else if cur_tile.unwrap().elevation == next_tile.elevation - 1
                 && move_copy.distance > 0 //has not stopped
                 && match next_tile.terrain {
                     Terrain::Slope(slope_dir) => match slope_dir {
@@ -202,32 +224,32 @@ fn try_move(
                         Direction::Right => direction == Direction::Left,
                     },
                     _ => false,
+                } {
+                    position_copy = next_position;
+                } else {
+                    // turn around
+                    direction = match direction {
+                        Direction::Up => Direction::Down,
+                        Direction::Down => Direction::Up,
+                        Direction::Left => Direction::Right,
+                        Direction::Right => Direction::Left,
+                    }
                 }
-            {
-                position_copy = next_position;
             } else {
-                // turn around
-                direction = match direction {
-                    Direction::Up => Direction::Down,
-                    Direction::Down => Direction::Up,
-                    Direction::Left => Direction::Right,
-                    Direction::Right => Direction::Left,
-                }
+                return None; // move falls out of bounds
             }
-        } else {
-            return None; // move falls out of bounds
         }
 
         cur_tile = map.get(&position_copy);
         in_bounds = cur_tile.is_some();
         stopped = move_copy.distance <= 0
+            && move_copy.airborne <= 0
             && match cur_tile.unwrap().terrain {
                 Terrain::Hole => true,
                 Terrain::Ground => true,
                 Terrain::Slope(_) => false,
             };
     }
-    // println!("{} {}", position_copy.x, position_copy.y);
     return Some(position_copy);
 }
 
@@ -251,6 +273,10 @@ fn main() {
     let generate_applescript: bool = std::env::args()
         .find(|arg| arg == "--applescript")
         .is_some();
+    if generate_applescript {
+        println!("activate application \"Golf Peaks\"");
+        println!("delay 0.1")
+    }
     if let Some(solution_moves) = try_moves_to_reach_hole(&map, &Location { x: 0, y: 0 }, &moves) {
         let mut last_index = 0;
         for (i, direction) in solution_moves {
@@ -276,7 +302,7 @@ fn main() {
                 );
                 println!("delay 0.1");
                 println!("tell application \"System Events\" to key code 36");
-                println!("delay 2");
+                println!("delay 2.5");
             } else {
                 println!(
                     "Use {} {}",
