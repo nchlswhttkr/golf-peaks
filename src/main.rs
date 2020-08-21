@@ -278,18 +278,11 @@ fn main() {
         println!("delay 0.1")
     }
     if let Some(solution_moves) = try_moves_to_reach_hole(&map, &Location { x: 0, y: 0 }, &moves) {
-        let mut last_index = 0;
         for (i, direction) in solution_moves {
             if generate_applescript {
-                let next_position = i - last_index;
-                for _ in 0..(next_position.abs()) {
-                    if next_position > 0 {
-                        println!("tell application \"System Events\" to keystroke \"e\"");
-                        println!("delay 0.1");
-                    } else {
-                        println!("tell application \"System Events\" to keystroke \"q\"");
-                        println!("delay 0.1");
-                    }
+                for _ in 0..i {
+                    println!("tell application \"System Events\" to keystroke \"e\"");
+                    println!("delay 0.1");
                 }
                 println!(
                     "tell application \"System Events\" to keystroke \"{}\"",
@@ -305,7 +298,8 @@ fn main() {
                 println!("delay 2.5");
             } else {
                 println!(
-                    "Use {} {}",
+                    "Use {}/{} {}",
+                    moves[i as usize].airborne,
                     moves[i as usize].distance,
                     match direction {
                         Direction::Up => "up",
@@ -316,11 +310,6 @@ fn main() {
                 );
             }
             moves.remove(i as usize);
-            if i > 0 {
-                last_index = i - 1;
-            } else {
-                last_index = 0;
-            }
         }
     } else {
         std::process::exit(1);
