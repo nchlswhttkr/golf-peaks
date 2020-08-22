@@ -325,6 +325,14 @@ fn main() {
         splits[0].split("\n").collect(),
         splits[1].split("\n").collect(),
     );
+    let mut starting_position = Location { x: 0, y: 0 };
+    if let Some(included_starting_position) = splits.get(2) {
+        let coords: Vec<&str> = included_starting_position.split(',').collect();
+        starting_position = Location {
+            x: coords[0].parse::<i32>().unwrap(),
+            y: coords[1].parse::<i32>().unwrap(),
+        }
+    }
 
     let generate_applescript: bool = std::env::args()
         .find(|arg| arg == "--applescript")
@@ -333,7 +341,7 @@ fn main() {
         println!("activate application \"Golf Peaks\"");
         println!("delay 0.1")
     }
-    if let Some(solution_moves) = try_moves_to_reach_hole(&map, &Location { x: 0, y: 0 }, &moves) {
+    if let Some(solution_moves) = try_moves_to_reach_hole(&map, &starting_position, &moves) {
         for (i, direction) in solution_moves {
             if generate_applescript {
                 for _ in 0..i {
