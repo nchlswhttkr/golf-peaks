@@ -19,7 +19,7 @@ enum Terrain {
     Slope(Direction),
     Trap,
     Quicksand,
-    // Water,
+    Water,
     // Spring,
     // Portal,
 }
@@ -44,7 +44,7 @@ pub enum Direction {
     Right,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub struct Location {
     x: i32,
     y: i32,
@@ -129,6 +129,18 @@ fn interpret_map_and_moves(
                     corner: None,
                 },
             );
+        } else if items[0] == "water" {
+            map.insert(
+                Location {
+                    x: items[1].parse::<i32>().unwrap(),
+                    y: items[2].parse::<i32>().unwrap(),
+                },
+                Tile {
+                    terrain: Terrain::Water,
+                    elevation: items.get(3).unwrap_or(&"0").parse::<i32>().unwrap(),
+                    corner: None,
+                },
+            );
         }
     }
     let moves: Vec<Move> = move_lines
@@ -195,6 +207,7 @@ fn try_move(
 ) -> Option<Location> {
     let mut move_copy = chosen_move.clone();
     let mut position_copy = position.clone();
+    let mut last_stable_position = position.clone();
     let mut direction = chosen_direction.clone();
     let mut cur_tile = map.get(&position_copy);
     let mut in_bounds = cur_tile.is_some();
@@ -206,6 +219,7 @@ fn try_move(
             Terrain::Slope(_) => false,
             Terrain::Trap => true,
             Terrain::Quicksand => true,
+            Terrain::Water => true,
         };
     while in_bounds && !stopped {
         if move_copy.airborne > 0 {
@@ -347,6 +361,7 @@ fn try_move(
                 Terrain::Slope(_) => false,
                 Terrain::Trap => true,
                 Terrain::Quicksand => true,
+                Terrain::Water => false,
             };
 
         // sink in quicksand if stopped
@@ -357,6 +372,30 @@ fn try_move(
             }
         {
             return None; // this move fails
+        }
+
+        // if we land on water at any step, return the last position
+        if match cur_tile.unwrap().terrain {
+            Terrain::Water => true,
+            _ => false,
+        } {
+            if last_stable_position == position_copy {
+                return None;
+            } else {
+                return Some(last_stable_position);
+            }
+        } else {
+            // update last stable if we're on "safe" ground
+            if match cur_tile.unwrap().terrain {
+                Terrain::Hole => true,
+                Terrain::Ground => true,
+                Terrain::Trap => true,
+                Terrain::Slope(_) => false,
+                Terrain::Water => false,
+                Terrain::Quicksand => false,
+            } {
+                last_stable_position = position_copy
+            }
         }
     }
     return Some(position_copy);
@@ -412,7 +451,7 @@ fn main() {
                 );
                 println!("delay 0.1");
                 println!("tell application \"System Events\" to key code 36");
-                println!("delay 2.5");
+                println!("delay 3.5");
             } else {
                 println!(
                     "Use {}/{} {}",

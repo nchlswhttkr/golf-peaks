@@ -40,6 +40,8 @@ def main():
                 print('hole,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '2':
                 print('ground,{},{},{}'.format(-c, -r, elevation))
+            elif terrain == '3':
+                print('water,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '4':
                 print('trap,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '6':
