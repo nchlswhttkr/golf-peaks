@@ -20,7 +20,7 @@ enum Terrain {
     Trap,
     Quicksand,
     Water,
-    // Spring,
+    Spring,
     // Portal,
 }
 
@@ -141,6 +141,18 @@ fn interpret_map_and_moves(
                     corner: None,
                 },
             );
+        } else if items[0] == "spring" {
+            map.insert(
+                Location {
+                    x: items[1].parse::<i32>().unwrap(),
+                    y: items[2].parse::<i32>().unwrap(),
+                },
+                Tile {
+                    terrain: Terrain::Spring,
+                    elevation: items.get(3).unwrap_or(&"0").parse::<i32>().unwrap(),
+                    corner: None,
+                },
+            );
         }
     }
     let moves: Vec<Move> = move_lines
@@ -220,6 +232,7 @@ fn try_move(
             Terrain::Trap => true,
             Terrain::Quicksand => true,
             Terrain::Water => true,
+            Terrain::Spring => true,
         };
     while in_bounds && !stopped {
         if move_copy.airborne > 0 {
@@ -344,10 +357,14 @@ fn try_move(
 
         cur_tile = map.get(&position_copy);
 
-        // landed on sand
+        // landed on sand or spring, apply effect
         if let Some(landed_on) = map.get(&position_copy) {
             match landed_on.terrain {
                 Terrain::Trap => move_copy.distance = 0,
+                Terrain::Spring => {
+                    move_copy.airborne = move_copy.distance;
+                    move_copy.distance = 0;
+                }
                 _ => (),
             };
         }
@@ -361,7 +378,8 @@ fn try_move(
                 Terrain::Slope(_) => false,
                 Terrain::Trap => true,
                 Terrain::Quicksand => true,
-                Terrain::Water => false,
+                Terrain::Water => true,
+                Terrain::Spring => true,
             };
 
         // sink in quicksand if stopped
@@ -393,6 +411,7 @@ fn try_move(
                 Terrain::Slope(_) => false,
                 Terrain::Water => false,
                 Terrain::Quicksand => false,
+                Terrain::Spring => true,
             } {
                 last_stable_position = position_copy
             }
@@ -451,7 +470,7 @@ fn main() {
                 );
                 println!("delay 0.1");
                 println!("tell application \"System Events\" to key code 36");
-                println!("delay 3.5");
+                println!("delay 4");
             } else {
                 println!(
                     "Use {}/{} {}",
