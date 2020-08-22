@@ -48,6 +48,8 @@ def main():
             elif terrain == '7':
                 print('slope,{},{},{},{}'.format(-c, -r,
                                                  elevation, slope_orientation_map[tile[2]]))
+            elif terrain == '12':
+                print('sand,{},{},{}'.format(-c, -r, elevation))
     print()
 
     for card in y["MonoBehaviour"]["Cards"].split(";"):

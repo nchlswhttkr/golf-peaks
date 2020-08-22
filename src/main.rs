@@ -18,7 +18,7 @@ enum Terrain {
     Ground,
     Slope(Direction),
     Trap,
-    // Quicksand,
+    Quicksand,
     // Water,
     // Spring,
     // Portal,
@@ -117,6 +117,18 @@ fn interpret_map_and_moves(
                     corner: None,
                 },
             );
+        } else if items[0] == "sand" {
+            map.insert(
+                Location {
+                    x: items[1].parse::<i32>().unwrap(),
+                    y: items[2].parse::<i32>().unwrap(),
+                },
+                Tile {
+                    terrain: Terrain::Quicksand,
+                    elevation: items.get(3).unwrap_or(&"0").parse::<i32>().unwrap(),
+                    corner: None,
+                },
+            );
         }
     }
     let moves: Vec<Move> = move_lines
@@ -193,6 +205,7 @@ fn try_move(
             Terrain::Ground => true,
             Terrain::Slope(_) => false,
             Terrain::Trap => true,
+            Terrain::Quicksand => true,
         };
     while in_bounds && !stopped {
         if move_copy.airborne > 0 {
@@ -275,11 +288,11 @@ fn try_move(
                             _ => false,
                         },
                     };
-                let caught_in_sandtrap = match cur_tile.unwrap().terrain {
+                let caught_in_trap = match cur_tile.unwrap().terrain {
                     Terrain::Trap => true,
                     _ => false,
                 };
-                if caught_in_sandtrap {
+                if caught_in_trap {
                     // do not move
                 } else if cur_tile.unwrap().elevation >= next_tile.elevation && !will_hit_corner {
                     position_copy = next_position;
@@ -324,6 +337,7 @@ fn try_move(
                 _ => (),
             };
         }
+
         in_bounds = cur_tile.is_some();
         stopped = move_copy.distance <= 0
             && move_copy.airborne <= 0
@@ -332,7 +346,18 @@ fn try_move(
                 Terrain::Ground => true,
                 Terrain::Slope(_) => false,
                 Terrain::Trap => true,
+                Terrain::Quicksand => true,
             };
+
+        // sink in quicksand if stopped
+        if stopped
+            && match cur_tile.unwrap().terrain {
+                Terrain::Quicksand => true,
+                _ => false,
+            }
+        {
+            return None; // this move fails
+        }
     }
     return Some(position_copy);
 }
