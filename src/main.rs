@@ -1,10 +1,6 @@
 use std::collections::HashMap;
 use std::io;
 
-// struct Portal {
-//     exit: Location,
-// }
-
 #[derive(Clone, Copy)]
 enum Corner {
     Northeast,
@@ -21,7 +17,7 @@ enum Terrain {
     Quicksand,
     Water,
     Spring,
-    // Portal,
+    Portal(Location),
 }
 
 struct Tile {
@@ -153,6 +149,22 @@ fn interpret_map_and_moves(
                     corner: None,
                 },
             );
+        } else if items[0] == "portal" {
+            let exit = Location {
+                x: items[4].parse::<i32>().unwrap(),
+                y: items[5].parse::<i32>().unwrap(),
+            };
+            map.insert(
+                Location {
+                    x: items[1].parse::<i32>().unwrap(),
+                    y: items[2].parse::<i32>().unwrap(),
+                },
+                Tile {
+                    terrain: Terrain::Portal(exit),
+                    elevation: items.get(3).unwrap_or(&"0").parse::<i32>().unwrap(),
+                    corner: None,
+                },
+            );
         }
     }
     let moves: Vec<Move> = move_lines
@@ -233,6 +245,7 @@ fn try_move(
             Terrain::Quicksand => true,
             Terrain::Water => true,
             Terrain::Spring => true,
+            Terrain::Portal(_) => true,
         };
     while in_bounds && !stopped {
         if move_copy.airborne > 0 {
@@ -248,6 +261,13 @@ fn try_move(
                 match landing_tile.terrain {
                     // face direction of landing slope
                     Terrain::Slope(d) => direction = d,
+                    // only move through portal if you'll continue out of it
+                    // a later condition handles stopping on a portal (sorry!)
+                    Terrain::Portal(exit) => {
+                        if move_copy.distance > 0 {
+                            next_position = exit
+                        }
+                    }
                     _ => (),
                 }
                 position_copy = next_position;
@@ -380,6 +400,7 @@ fn try_move(
                 Terrain::Quicksand => true,
                 Terrain::Water => true,
                 Terrain::Spring => true,
+                Terrain::Portal(_) => true,
             };
 
         // sink in quicksand if stopped
@@ -390,6 +411,14 @@ fn try_move(
             }
         {
             return None; // this move fails
+        }
+
+        // travel to partner if ending on portal
+        if stopped {
+            match cur_tile.unwrap().terrain {
+                Terrain::Portal(exit) => position_copy = exit,
+                _ => (),
+            };
         }
 
         // if we land on water at any step, return the last position
@@ -412,6 +441,7 @@ fn try_move(
                 Terrain::Water => false,
                 Terrain::Quicksand => false,
                 Terrain::Spring => true,
+                Terrain::Portal(_) => true,
             } {
                 last_stable_position = position_copy
             }
@@ -470,7 +500,7 @@ fn main() {
                 );
                 println!("delay 0.1");
                 println!("tell application \"System Events\" to key code 36");
-                println!("delay 4");
+                println!("delay 4.5");
             } else {
                 println!(
                     "Use {}/{} {}",

@@ -26,6 +26,7 @@ def main():
     y = yaml.load(sys.stdin)
 
     starting_position = (0, 0)
+    portals = {}
     columns = y["MonoBehaviour"]["Level"].split("\n")
     for c in range(len(columns)):
         tiles = columns[c].replace('\r', '').split(';')
@@ -54,6 +55,16 @@ def main():
                 print('spring,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '12':
                 print('sand,{},{},{}'.format(-c, -r, elevation))
+            elif terrain == '13':
+                pair_number = tile[3]
+                if pair_number in portals:
+                    partner = portals[pair_number]
+                    print('portal,{},{},{},{},{}'.format(-c, -
+                                                         r, elevation, partner[0], partner[1]))
+                    print('portal,{},{},{},{},{}'.format(
+                        partner[0], partner[1], partner[2], -c, -r))
+                else:
+                    portals[pair_number] = (-c, -r, elevation)
     print()
 
     for card in y["MonoBehaviour"]["Cards"].split(";"):
