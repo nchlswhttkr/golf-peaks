@@ -17,7 +17,7 @@ enum Terrain {
     Hole,
     Ground,
     Slope(Direction),
-    // Trap,
+    Trap,
     // Quicksand,
     // Water,
     // Spring,
@@ -105,6 +105,18 @@ fn interpret_map_and_moves(
                     corner: None,
                 },
             );
+        } else if items[0] == "trap" {
+            map.insert(
+                Location {
+                    x: items[1].parse::<i32>().unwrap(),
+                    y: items[2].parse::<i32>().unwrap(),
+                },
+                Tile {
+                    terrain: Terrain::Trap,
+                    elevation: items.get(3).unwrap_or(&"0").parse::<i32>().unwrap(),
+                    corner: None,
+                },
+            );
         }
     }
     let moves: Vec<Move> = move_lines
@@ -180,6 +192,7 @@ fn try_move(
             Terrain::Hole => true,
             Terrain::Ground => true,
             Terrain::Slope(_) => false,
+            Terrain::Trap => true,
         };
     while in_bounds && !stopped {
         if move_copy.airborne > 0 {
@@ -262,7 +275,13 @@ fn try_move(
                             _ => false,
                         },
                     };
-                if cur_tile.unwrap().elevation >= next_tile.elevation && !will_hit_corner {
+                let caught_in_sandtrap = match cur_tile.unwrap().terrain {
+                    Terrain::Trap => true,
+                    _ => false,
+                };
+                if caught_in_sandtrap {
+                    // do not move
+                } else if cur_tile.unwrap().elevation >= next_tile.elevation && !will_hit_corner {
                     position_copy = next_position;
                     if let Some(slope_dir) = match next_tile.terrain {
                         Terrain::Slope(d) => Some(d),
@@ -297,6 +316,14 @@ fn try_move(
         }
 
         cur_tile = map.get(&position_copy);
+
+        // landed on sand
+        if let Some(landed_on) = map.get(&position_copy) {
+            match landed_on.terrain {
+                Terrain::Trap => move_copy.distance = 0,
+                _ => (),
+            };
+        }
         in_bounds = cur_tile.is_some();
         stopped = move_copy.distance <= 0
             && move_copy.airborne <= 0
@@ -304,6 +331,7 @@ fn try_move(
                 Terrain::Hole => true,
                 Terrain::Ground => true,
                 Terrain::Slope(_) => false,
+                Terrain::Trap => true,
             };
     }
     return Some(position_copy);

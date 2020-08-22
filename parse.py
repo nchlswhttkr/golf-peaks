@@ -40,6 +40,8 @@ def main():
                 print('hole,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '2':
                 print('ground,{},{},{}'.format(-c, -r, elevation))
+            elif terrain == '4':
+                print('trap,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '6':
                 print('ground,{},{},{},{}'.format(-c, -
                                                   r, elevation, corner_orientation_map[tile[2]]))
