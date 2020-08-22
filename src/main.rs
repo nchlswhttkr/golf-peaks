@@ -184,7 +184,7 @@ fn try_moves_to_reach_hole(
     map: &HashMap<Location, Tile>,
     position: &Location,
     moves: &Vec<Move>,
-) -> Option<Vec<(i32, Direction)>> {
+) -> Option<Vec<(i32, Direction, i32)>> {
     // check whether hole reached
     if let Some(current_tile) = map.get(position) {
         let in_hole = match current_tile.terrain {
@@ -206,16 +206,32 @@ fn try_moves_to_reach_hole(
         ]
         .iter()
         {
-            if let Some(end_position) = try_move(&map, position, &moves[i], &direction) {
+            if let Some((end_position, steps)) = try_move(&map, position, &moves[i], &direction) {
+                // println!(
+                //     "trying {}/{} from {},{} {}",
+                //     &moves[i].airborne,
+                //     &moves[i].distance,
+                //     position.x,
+                //     position.y,
+                //     match &direction {
+                //         Direction::Up => "up",
+                //         Direction::Down => "down",
+                //         Direction::Left => "left",
+                //         Direction::Right => "right",
+                //     }
+                // );
                 let mut remaining_moves = moves.clone();
                 remaining_moves.remove(i);
                 if let Some(mut moves_to_solve) =
                     try_moves_to_reach_hole(&map, &end_position, &remaining_moves)
                 {
-                    moves_to_solve.insert(0, (i as i32, direction.clone()));
+                    moves_to_solve.insert(0, (i as i32, direction.clone(), steps));
                     return Some(moves_to_solve);
                 }
             }
+            // else {
+            //     println!();
+            // }
         }
     }
     return None;
@@ -228,7 +244,8 @@ fn try_move(
     position: &Location,
     chosen_move: &Move,
     chosen_direction: &Direction,
-) -> Option<Location> {
+) -> Option<(Location, i32)> {
+    let mut steps = 0;
     let mut move_copy = chosen_move.clone();
     let mut position_copy = position.clone();
     let mut last_stable_position = position.clone();
@@ -256,6 +273,7 @@ fn try_move(
                 Direction::Left => next_position.x -= move_copy.airborne,
                 Direction::Right => next_position.x += move_copy.airborne,
             };
+            steps += move_copy.airborne;
             move_copy.airborne = 0;
             if let Some(landing_tile) = map.get(&next_position) {
                 match landing_tile.terrain {
@@ -308,6 +326,7 @@ fn try_move(
                 Direction::Right => next_position.x += 1,
             }
             // move
+            steps += 1;
             move_copy.distance -= 1;
             if let Some(next_tile) = map.get(&next_position) {
                 // you can run into the back of a corner
@@ -429,7 +448,7 @@ fn try_move(
             if last_stable_position == position_copy {
                 return None;
             } else {
-                return Some(last_stable_position);
+                return Some((last_stable_position, steps));
             }
         } else {
             // update last stable if we're on "safe" ground
@@ -447,7 +466,7 @@ fn try_move(
             }
         }
     }
-    return Some(position_copy);
+    return Some((position_copy, steps));
 }
 
 fn main() {
@@ -480,14 +499,14 @@ fn main() {
         .is_some();
     if generate_applescript {
         println!("activate application \"Golf Peaks\"");
-        println!("delay 0.1")
+        println!("delay 0.05")
     }
     if let Some(solution_moves) = try_moves_to_reach_hole(&map, &starting_position, &moves) {
-        for (i, direction) in solution_moves {
+        for (i, direction, steps) in solution_moves {
             if generate_applescript {
                 for _ in 0..i {
                     println!("tell application \"System Events\" to keystroke \"e\"");
-                    println!("delay 0.1");
+                    println!("delay 0.05");
                 }
                 println!(
                     "tell application \"System Events\" to keystroke \"{}\"",
@@ -498,9 +517,9 @@ fn main() {
                         Direction::Right => "d",
                     }
                 );
-                println!("delay 0.1");
+                println!("delay 0.05");
                 println!("tell application \"System Events\" to key code 36");
-                println!("delay 4.5");
+                println!("delay {}", (steps + 4) / 2);
             } else {
                 println!(
                     "Use {}/{} {}",
