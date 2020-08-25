@@ -40,7 +40,7 @@ pub enum Direction {
     Right,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct Location {
     x: i32,
     y: i32,
@@ -238,7 +238,7 @@ fn try_moves_to_reach_hole(
 }
 
 // attempts to move with the nominated put/direction
-// returns the (optional) finishing position, None indicates failure
+// returns the finishing position, or None for moving/finishing OOB
 fn try_move(
     map: &HashMap<Location, Tile>,
     position: &Location,
@@ -466,14 +466,11 @@ fn try_move(
             }
         }
     }
+
     return Some((position_copy, steps));
 }
 
 fn main() {
-    // let mut map_lines: Vec<&str> = Vec::new();
-    // let mut move_lines: Vec<&str> = Vec::new();
-    // let mut line: String = String::new();
-
     let mut buffer = String::new();
     while let Ok(read) = io::stdin().read_line(&mut buffer) {
         if read == 0 {
@@ -537,5 +534,479 @@ fn main() {
         }
     } else {
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod test_general_movement {
+    use super::*;
+
+    #[test]
+    fn rolls_along_ground() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
+    }
+
+    #[test]
+    fn falls_out_of_bounds_if_rolling_across_gaps() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_none(), true);
+    }
+
+    #[test]
+    fn skips_over_intermediate_tiles_if_airborne() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 0, airborne: 2 }, &Direction::Right);
+        
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
+    }
+
+    #[test]
+    fn uses_airborne_movement_before_rolling() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 3, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 2 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 3, y: 0 });
+    }
+
+    #[test]
+    fn bounces_off_walls() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: -1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: -1, y: 0 });
+    }
+    
+    #[test]
+    fn stops_on_hole_if_landing_from_airborne_even_if_can_keep_rolling() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Hole, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 2 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
+    }
+
+    #[test]
+    fn returns_finishing_position_even_if_no_net_movement() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
+    }
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod test_corners {
+    use super::*;
+
+    #[test]
+    fn is_redicted_if_hit_corner() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: Some(Corner::Southeast) });
+        map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 1 });
+    }
+    #[test]
+    fn bounces_off_back_of_corner_like_wall() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: Some(Corner::Northwest) });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
+    }
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod test_slopes {
+    use super::*;
+
+    #[test]
+    fn bounces_off_slopes_higher_than_current_tile() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Right), elevation: 1, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
+    }
+
+    #[test]
+    fn rolls_up_slope_if_facing_right_direction() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Left), elevation: 1, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
+    }
+
+    #[test]
+    fn rolls_down_slope_if_not_going_uphill() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Up), elevation: 1, corner: None });
+        map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 1 });
+    }
+    
+    #[test]
+    fn rolls_down_slope_if_move_runs_out() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Left), elevation: 1, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
+    }
+
+    #[test]
+    fn always_rolls_down_slope_if_landing_from_airborne() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 3, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Left), elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 2 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
+    }
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod test_traps {
+    use super::*;
+
+    #[test]
+    fn stops_if_lands_in_trap() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Trap, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 1 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
+    }
+
+    #[test]
+    fn does_not_roll_out_of_trap() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Trap, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
+    }
+
+    #[test]
+    fn does_escape_trap_if_airborne() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Trap, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 0, airborne: 1 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
+    }
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod test_quicksand {
+    use super::*;
+
+    #[test]
+    fn rolls_over_quicksand() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Quicksand, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
+    }
+
+    #[test]
+    fn sinks_if_stops_on_quicksand() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Quicksand, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_none(), true);
+    }
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod test_water {
+    use super::*;
+
+    #[test]
+    fn does_not_keep_rolling_after_landing_in_water() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Water, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 3, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
+    }
+
+    #[test]
+    fn gets_placed_back_on_ground_if_lands_in_water() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Water, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
+    }
+
+    #[test]
+    fn does_not_get_placed_back_on_slope_if_lands_in_water() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Right), elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Water, elevation: -1, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
+    }
+
+    #[test]
+    fn does_not_get_placed_back_on_quicksand_if_lands_in_water() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Quicksand, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Water, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
+    }
+
+    #[test]
+    fn gets_placed_back_on_spring_if_lands_in_water() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Spring, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Water, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
+    }
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod test_spring {
+    use super::*;
+    
+    #[test]
+    fn gets_launched_airborne_if_rolls_over_spring() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Spring, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+        map.insert(Location { x: 3, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 3, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 3, y: 0 });
+    }
+    
+    #[test]
+    fn does_not_get_launched_airborne_if_starting_on_spring() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Spring, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
+    }
+    
+    #[test]
+    fn gets_launched_airborne_after_bouncing_off_wall() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: -1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Spring, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: -1, y: 0 });
+    }
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod test_portals {
+    use super::*;
+
+    #[test]
+    fn goes_through_portal_if_stops_while_rolling() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Portal(Location { x: 1, y: 2 }), elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 2 }, Tile { terrain: Terrain::Portal(Location { x: 1, y: 0 }), elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 2 });
+    }
+
+    #[test]
+    fn goes_through_portal_if_stops_while_airborne() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Portal(Location { x: 1, y: 2 }), elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 2 }, Tile { terrain: Terrain::Portal(Location { x: 1, y: 0 }), elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 0, airborne: 1 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 2 });
+    }
+
+    #[test]
+    fn continues_rolling_out_of_portal_exit_if_lands_from_airborne() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Portal(Location { x: 1, y: 2 }), elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 2 }, Tile { terrain: Terrain::Portal(Location { x: 1, y: 0 }), elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 2 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 1 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 2, y: 2 });
+    }
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod test_todos_and_undefined_behaviour {
+    /*
+    There's a few cases of subtle behaviour that needs fixing in my solver, but
+    they aren't urgent because they haven't appeared in game so far.
+
+    Similarly, some situations have undefined behaviour that I can't be sure
+    about because I haven't encountered it yet.
+    */
+
+    #[allow(unused_imports)]
+    use super::*;
+
+    #[test] #[ignore]
+    fn might_go_uphill_if_rolls_off_edge_onto_lower_slope() {
+        assert_eq!(true, false);
+    }
+
+    #[test] #[ignore]
+    fn might_fall_back_through_portal_if_rolls_in_water_after_exiting() {
+        assert_eq!(true, false);
+    }
+
+    #[test] #[ignore]
+    fn fix_elevation_check_when_going_down_slope_on_same_level_as_next_tile() {
+        /*
+        A slope's elevation is defined by the *top* of the slope. Since a ball
+        can usually go between tiles of the same elevation, it can leave the
+        slope even if the bottom of said slope is technically below the
+        neighbouring tile.
+
+        It should instead bounce off the wall and start heading back up the
+        slope. It might get stuck in an inifite loop if it has no rolling
+        movement remaining.
+        */
+
+        // let mut map: HashMap<Location, Tile> = HashMap::new();
+        // map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        // map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Left), elevation: 0, corner: None });
+
+        // let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
+
+        // assert_eq!(result.is_some(), true);
+        // assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
+        assert_eq!(true, false);
     }
 }
