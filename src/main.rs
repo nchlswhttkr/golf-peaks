@@ -20,6 +20,7 @@ enum Terrain {
     Spring,
     Portal(Location),
     Conveyor(Direction),
+    Ice,
 }
 
 struct Tile {
@@ -185,6 +186,24 @@ fn interpret_map_and_moves(
                     corner: None,
                 },
             );
+        } else if items[0] == "ice" {
+            map.insert(
+                Location {
+                    x: items[1].parse::<i32>().unwrap(),
+                    y: items[2].parse::<i32>().unwrap(),
+                },
+                Tile {
+                    terrain: Terrain::Ice,
+                    elevation: items.get(3).unwrap_or(&"0").parse::<i32>().unwrap(),
+                    corner: match items.get(4).unwrap_or(&"") {
+                        &"nw" => Some(Corner::Northwest),
+                        &"ne" => Some(Corner::Northeast),
+                        &"se" => Some(Corner::Southeast),
+                        &"sw" => Some(Corner::Southwest),
+                        _ => None,
+                    },
+                },
+            );
         }
     }
     let moves: Vec<Move> = move_lines
@@ -266,6 +285,7 @@ fn try_move(
 
     while remaining_move.distance > 0 || remaining_move.airborne > 0 {
         let mut current_tile = map.get(&current_position).unwrap();
+        let position_before_moving = current_position;
         let mut next_position = current_position;
         let airborne = remaining_move.airborne > 0;
 
@@ -403,6 +423,10 @@ fn try_move(
                 current_direction = conveyor_direction;
                 remaining_move.distance += 1;
             }
+        } else if current_tile.terrain == Terrain::Ice {
+            if remaining_move.distance == 0 && current_position != position_before_moving {
+                remaining_move.distance += 1;
+            }
         }
 
         last_stable_position = match current_tile.terrain {
@@ -415,6 +439,7 @@ fn try_move(
             Terrain::Spring => current_position,
             Terrain::Portal(_) => current_position,
             Terrain::Conveyor(_) => last_stable_position,
+            Terrain::Ice => current_position,
         }
     }
 
@@ -473,7 +498,7 @@ fn main() {
                 );
                 println!("delay 0.05");
                 println!("tell application \"System Events\" to key code 36");
-                println!("delay 5");
+                println!("delay 6");
             } else {
                 println!(
                     "Use {}/{} {}",
@@ -1023,6 +1048,70 @@ mod test_conveyors {
         let mut map: HashMap<Location, Tile> = HashMap::new();
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Conveyor(Direction::Up), elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 1 });
+    }
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod test_ice {
+    use super::*;
+
+    #[test]
+    fn keeps_moving_on_ice_if_stops() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
+    }
+
+    #[test]
+    fn stops_moving_on_ice_if_hits_wall() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+
+        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
+    }
+
+    #[test]
+    fn does_not_move_on_ice_if_hits_wall_when_stopping() {
+        /*
+        Very similar to the above case, but only occurs when the ball runs into
+        a wall on its last step. Even though it is on ice, it shouldn't start
+        rolling back in the direction it came.
+        */
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: None });
+        map.insert(Location { x: 3, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+
+        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 3, airborne: 0 }, Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
+    }
+
+    #[test]
+    fn bounces_off_corners_while_on_ice() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: Some(Corner::Southeast) });
         map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
         let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);

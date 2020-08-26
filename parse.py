@@ -58,6 +58,8 @@ def main():
             elif terrain == '7':
                 print('slope,{},{},{},{}'.format(-c, -r,
                                                  elevation, slope_orientation_map[tile[2]]))
+            elif terrain == '8':
+                pass  # OOB tile, skip
             elif terrain == '10':
                 print('spring,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '12':
@@ -72,9 +74,14 @@ def main():
                         partner[0], partner[1], partner[2], -c, -r))
                 else:
                     portals[pair_number] = (-c, -r, elevation)
+            elif terrain == '14':
+                print('ice,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '15':
                 print("conveyor,{},{},{},{}".format(-c, -r,
                                                     elevation, conveyor_orientation_map[tile[2]]))
+            elif terrain == '17':
+                print('ice,{},{},{},{}'.format(-c, -r, elevation,
+                                               corner_orientation_map[tile[2]]))
     print()
 
     for card in y["MonoBehaviour"]["Cards"].split(";"):
