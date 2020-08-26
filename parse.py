@@ -54,7 +54,7 @@ def main():
                 print('trap,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '6':
                 print('ground,{},{},{},{}'.format(-c, -
-                                                  r, elevation, corner_orientation_map[tile[2]]))
+                                                  r, elevation, corner_orientation_map[tile[2] if len(tile) > 2 else 'NW']))
             elif terrain == '7':
                 print('slope,{},{},{},{}'.format(-c, -r,
                                                  elevation, slope_orientation_map[tile[2]]))
@@ -78,10 +78,10 @@ def main():
                 print('ice,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '15':
                 print("conveyor,{},{},{},{}".format(-c, -r,
-                                                    elevation, conveyor_orientation_map[tile[2]]))
+                                                    elevation, conveyor_orientation_map[tile[2] if len(tile) > 2 else 'NW']))
             elif terrain == '17':
                 print('ice,{},{},{},{}'.format(-c, -r, elevation,
-                                               corner_orientation_map[tile[2]]))
+                                               corner_orientation_map[tile[2] if len(tile) > 2 else 'NW']))
     print()
 
     for card in y["MonoBehaviour"]["Cards"].split(";"):

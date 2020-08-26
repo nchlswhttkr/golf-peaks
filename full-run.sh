@@ -152,3 +152,17 @@ challenge_levels
 complete_level 09-10
 complete_level 09-11
 complete_level 09-12
+next_world
+complete_level 10-01
+complete_level 10-02
+complete_level 10-03
+complete_level 10-04
+complete_level 10-05
+complete_level 10-06
+complete_level 10-07
+complete_level 10-08
+complete_level 10-09
+complete_level 10-10
+complete_level 10-11
+complete_level 10-12
+next_world

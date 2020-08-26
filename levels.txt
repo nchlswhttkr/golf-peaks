@@ -106,3 +106,15 @@
 09-10,iceicebaby
 09-11,ice_face
 09-12,ice_bomberman
+10-01,ten_4
+10-02,ten_7
+10-03,ten_5
+10-04,ten_6
+10-05,ten_1
+10-06,ten_3
+10-07,ten_x1
+10-08,ten_2
+10-09,ten_12
+10-10,ten_9
+10-11,ten_10
+10-12,ten_8

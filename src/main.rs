@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io;
 
 #[derive(Clone, Copy)]
@@ -35,7 +35,7 @@ pub struct Move {
     airborne: i32,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Direction {
     Up,
     Down,
@@ -282,6 +282,7 @@ fn try_move(
     let steps = 0;
     let mut last_stable_position = starting_position;
     let mut current_position = starting_position;
+    let mut loop_guard: HashSet<(Location, Direction)> = HashSet::new();
 
     while remaining_move.distance > 0 || remaining_move.airborne > 0 {
         let mut current_tile = map.get(&current_position).unwrap();
@@ -391,6 +392,14 @@ fn try_move(
             }
         } else {
             return None;
+        }
+
+        if remaining_move.distance == 0 {
+            if loop_guard.contains(&(current_position, current_direction)) {
+                return None;
+            } else {
+                loop_guard.insert((current_position, current_direction));
+            }
         }
 
         // Apply logic depending on the tile you land on
@@ -1017,12 +1026,6 @@ mod test_todos_and_undefined_behaviour {
         // assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
         assert_eq!(true, false);
     }
-
-    #[test] #[ignore]
-    fn fails_if_stuck_in_infinite_loop() {
-        // conveyor belt into wall, loop of ice corners
-        assert_eq!(true, false);
-    }
 }
 
 #[cfg(test)]
@@ -1054,6 +1057,18 @@ mod test_conveyors {
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 1 });
+    }
+
+    #[test]
+    fn fails_if_gets_stuck_in_loop_on_conveyor() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Conveyor(Direction::Up), elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+
+        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+
+        assert_eq!(result.is_none(), true);
     }
 }
 
@@ -1118,5 +1133,19 @@ mod test_ice {
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 1 });
+    }
+
+    #[test]
+    fn fails_if_gets_stuck_in_loop_of_ice_corners() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: Some(Corner::Southwest) });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: Some(Corner::Southeast) });
+        map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: Some(Corner::Northwest) });
+        map.insert(Location { x: 2, y: 1 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: Some(Corner::Northeast) });
+
+        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 0, airborne: 1 }, Direction::Right);
+
+        assert_eq!(result.is_none(), true);
     }
 }
