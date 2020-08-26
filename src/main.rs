@@ -645,6 +645,7 @@ mod test_corners {
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 1 });
     }
+    
     #[test]
     fn bounces_off_back_of_corner_like_wall() {
         let mut map: HashMap<Location, Tile> = HashMap::new();
@@ -655,6 +656,18 @@ mod test_corners {
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
+    }
+
+    #[test]
+    fn is_not_blocked_by_corner_wall_if_dropping_down() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: Some(Corner::Northwest) });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
     }
 }
 
@@ -673,6 +686,20 @@ mod test_slopes {
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
+    }
+
+    #[test]
+    fn changes_direction_when_dropping_down_onto_slope() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Up), elevation: 1, corner: None });
+        map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 2 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 3, airborne: 0 }, &Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 2 });
     }
 
     #[test]
@@ -718,13 +745,13 @@ mod test_slopes {
     fn always_rolls_down_slope_if_landing_from_airborne() {
         let mut map: HashMap<Location, Tile> = HashMap::new();
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
-        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
-        map.insert(Location { x: 3, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Left), elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Left), elevation: 0, corner: None });
 
         let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 2 }, &Direction::Right);
 
         assert_eq!(result.is_some(), true);
-        assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
     }
 }
 
@@ -739,7 +766,7 @@ mod test_traps {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Trap, elevation: 0, corner: None });
 
-        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 1 }, &Direction::Right);
+        let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 2, airborne: 0 }, &Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
@@ -749,7 +776,6 @@ mod test_traps {
     fn does_not_roll_out_of_trap() {
         let mut map: HashMap<Location, Tile> = HashMap::new();
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Trap, elevation: 0, corner: None });
-        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
         let result = try_move(&map, &Location { x: 0, y: 0 }, &Move { distance: 1, airborne: 0 }, &Direction::Right);
 
