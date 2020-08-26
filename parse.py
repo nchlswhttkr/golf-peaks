@@ -29,7 +29,7 @@ def main():
     portals = {}
     columns = y["MonoBehaviour"]["Level"].split("\n")
     for c in range(len(columns)):
-        tiles = columns[c].replace('\r', '').split(';')
+        tiles = columns[c].replace('\r', '').rstrip().split(';')
         for r in range(len(tiles)):
             tile = tiles[r].split(',')
             terrain = tile[0]

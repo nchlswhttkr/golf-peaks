@@ -208,13 +208,15 @@ fn try_moves_to_reach_hole(
         .iter()
         {
             if let Some((end_position, steps)) = try_move(&map, position, moves[i], *direction) {
-                let mut remaining_moves = moves.clone();
-                remaining_moves.remove(i);
-                if let Some(mut moves_to_solve) =
-                    try_moves_to_reach_hole(map, end_position, remaining_moves)
-                {
-                    moves_to_solve.insert(0, (i as i32, *direction, steps));
-                    return Some(moves_to_solve);
+                if end_position != position {
+                    let mut remaining_moves = moves.clone();
+                    remaining_moves.remove(i);
+                    if let Some(mut moves_to_solve) =
+                        try_moves_to_reach_hole(map, end_position, remaining_moves)
+                    {
+                        moves_to_solve.insert(0, (i as i32, *direction, steps));
+                        return Some(moves_to_solve);
+                    }
                 }
             }
         }
