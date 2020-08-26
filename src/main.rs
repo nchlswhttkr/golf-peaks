@@ -19,6 +19,7 @@ enum Terrain {
     Water,
     Spring,
     Portal(Location),
+    Conveyor(Direction),
 }
 
 struct Tile {
@@ -162,6 +163,24 @@ fn interpret_map_and_moves(
                 },
                 Tile {
                     terrain: Terrain::Portal(exit),
+                    elevation: items.get(3).unwrap_or(&"0").parse::<i32>().unwrap(),
+                    corner: None,
+                },
+            );
+        } else if items[0] == "conveyor" {
+            map.insert(
+                Location {
+                    x: items[1].parse::<i32>().unwrap(),
+                    y: items[2].parse::<i32>().unwrap(),
+                },
+                Tile {
+                    terrain: Terrain::Conveyor(match items[4] {
+                        "up" => Direction::Up,
+                        "down" => Direction::Down,
+                        "left" => Direction::Left,
+                        "right" => Direction::Right,
+                        _ => panic!("Unknown conveyor direction"),
+                    }),
                     elevation: items.get(3).unwrap_or(&"0").parse::<i32>().unwrap(),
                     corner: None,
                 },
@@ -379,6 +398,11 @@ fn try_move(
             if airborne || remaining_move.distance == 0 {
                 current_position = exit_portal;
             }
+        } else if let Terrain::Conveyor(conveyor_direction) = current_tile.terrain {
+            if remaining_move.distance == 0 {
+                current_direction = conveyor_direction;
+                remaining_move.distance += 1;
+            }
         }
 
         last_stable_position = match current_tile.terrain {
@@ -390,6 +414,7 @@ fn try_move(
             Terrain::Water => last_stable_position,
             Terrain::Spring => current_position,
             Terrain::Portal(_) => current_position,
+            Terrain::Conveyor(_) => last_stable_position,
         }
     }
 
@@ -966,5 +991,43 @@ mod test_todos_and_undefined_behaviour {
         // assert_eq!(result.is_some(), true);
         // assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
         assert_eq!(true, false);
+    }
+
+    #[test] #[ignore]
+    fn fails_if_stuck_in_infinite_loop() {
+        // conveyor belt into wall, loop of ice corners
+        assert_eq!(true, false);
+    }
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod test_conveyors {
+    use super::*;
+
+    #[test]
+    fn skips_over_conveyor_belts_if_rolling() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Conveyor(Direction::Down), elevation: 0, corner: None });
+        map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
+    }
+
+    #[test]
+    fn follows_conveyor_belts_if_stops() {
+        let mut map: HashMap<Location, Tile> = HashMap::new();
+        map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Conveyor(Direction::Up), elevation: 0, corner: None });
+        map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
+
+        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+
+        assert_eq!(result.is_some(), true);
+        assert_eq!(result.unwrap().0, Location { x: 1, y: 1 });
     }
 }

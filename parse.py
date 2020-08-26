@@ -14,6 +14,13 @@ corner_orientation_map = {
     "SW": 'nw'
 }
 
+conveyor_orientation_map = {
+    "NW": 'up',
+    "NE": 'right',
+    "SE": 'down',
+    "SW": 'left'
+}
+
 
 def main():
     # There's some stuff going on here with YAML tags that I haven't got a
@@ -56,7 +63,7 @@ def main():
             elif terrain == '12':
                 print('sand,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '13':
-                pair_number = tile[3]
+                pair_number = tile[3] if len(tile) > 3 else -1
                 if pair_number in portals:
                     partner = portals[pair_number]
                     print('portal,{},{},{},{},{}'.format(-c, -
@@ -65,6 +72,9 @@ def main():
                         partner[0], partner[1], partner[2], -c, -r))
                 else:
                     portals[pair_number] = (-c, -r, elevation)
+            elif terrain == '15':
+                print("conveyor,{},{},{},{}".format(-c, -r,
+                                                    elevation, conveyor_orientation_map[tile[2]]))
     print()
 
     for card in y["MonoBehaviour"]["Cards"].split(";"):
