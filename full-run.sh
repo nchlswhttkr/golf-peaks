@@ -4,13 +4,13 @@ set -eu
 
 function complete_level {
     $SHELL run.sh $1
-    sleep 2
+    sleep 2.5
 }
 
 function next_world {
     osascript -e '
 tell application "System Events" to key code 36
-delay 2
+delay 1.5
 '
 }
 
@@ -23,10 +23,11 @@ delay 0.05
 tell application "System Events" to keystroke "a"
 delay 0.05
 tell application "System Events" to key code 36
-delay 2
+delay 1.5
 '
 }
 
+osascript -e 'activate application "Golf Peaks"'
 complete_level 01-01
 complete_level 01-02
 complete_level 01-03
@@ -137,7 +138,6 @@ challenge_levels
 complete_level 08-10
 complete_level 08-11
 complete_level 08-12
-complete_level 07-12
 next_world
 complete_level 09-01
 complete_level 09-02
