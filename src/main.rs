@@ -492,6 +492,9 @@ fn main() {
     let generate_applescript: bool = std::env::args()
         .find(|arg| arg == "--applescript")
         .is_some();
+    if generate_applescript {
+        println!("activate application \"Golf Peaks\"");
+    }
     if let Some(solution_moves) = try_moves_to_reach_hole(&map, starting_position, moves.clone()) {
         for (i, direction, steps) in solution_moves {
             if generate_applescript {

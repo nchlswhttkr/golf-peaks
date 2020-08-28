@@ -2,49 +2,41 @@
 
 A solver for levels from [Golf Peaks](https://afterburn.itch.io/golf-peaks/) from [Afterburn Games](http://afterburn.games/).
 
+You can find also find a copy of these solutions in [`solutions.txt`](./solutions.txt).
+
 ![A video game puzzle where the player uses various moves to get a golf ball into the hole](./screenshot.png)
 
 ## Usage
 
-Tested against the current macOS release (`v3.02`), though cards/levels may differ slightly between platforms/releases.
+Tested against the current macOS release (`v3.02`), though levels may differ slightly between platforms/releases.
 
-You can use my hand-transcribed level files if you'd like to see solutions for the first few worlds.
+The first few worlds are solved from handwritten level files, but levels come from the source level files which the creators sent to me. Seeing as I don't own these files I'm not including them here, but if you'd like a copy you can email the creators.
 
 ```sh
+# Solve a level from a handwritten file
 cargo run < old-levels/01-01.level.txt
-```
 
-Later on I managed to get in touch with the game creators, who sent me the source level files. Since I don't own these, I'm not including them here. If you'd like a copy, I'd suggest emailing them yourself.
-
-You might find some subtle differences between the source levels and the levels in your game, so you'll need to edit those manually.
-
-<!-- TODO create a patch -->
-
-<details>
-<summary><em>Differences between source level files and macOS release 3.02</em></summary>
-<ul>
-  <li><code>conveyor_hard1.asset</code> - Cards in different order</li>
-  <li><code>extra_4.asset</code> - Cards in different order</li>
-  <li><code>portal_1.asset</code> - Cards in a different order</li>
-  <li><code>seven_z.asset</code> - Cards in a different order</li>
-  <li><code>ten_2.asset</code> - Contains two ball tiles, remove the second</li>
-  <li><code>ten_x1.asset</code> - Cards in a different order</li>
-</ul>
-</details>
-
-```sh
-tar -xf gp_levels.zip
+# Solve a level from the source level file
+tar -xf /path/to/gp_levels.zip
+pip3 install -r requirements.txt
 cat gp_levels/roll_1.asset | python3 parse.py | cargo run
 ```
 
-You can also see a full run of the game in action. It uses AppleScript to execute key presses, so you'll need to be on macOS. You'll also need to give your terminal permission to control your computer.
+The solver can also produce AppleScript instructions to execute the key presses necessary to solve a level. You'll need to be using macOS, and grant permission for your terminal to control your computer.
+
+Open the level you want to solve, and feed the solver's (AppleScript) output into the OSA interpreter.
+
+In some levels, the order of cards in the player's hand is different between the source file and the macOS release. There's a patch to correct these files.
 
 ```sh
 # Check that your terminal has permission to control your computer
 # System Preferences > Settings & Privacy > Privacy > Accessibility
 osascript -e 'tell application "System Events" to key code 36'
 
-$SHELL full-run.sh
+# Make sure the cards are in the correct order for macOS release v3.02
+patch -p1 < fix-levels.patch
+
+cat gp_levels/roll_1.asset | python3 parse.py | cargo run -q -- --applescript | osascript -i
 ```
 
 ## Notes

@@ -1,9 +1,11 @@
 #!/bin/bash
 
-set -eu
+set -euo pipefail
 
 function complete_level {
-    $SHELL run.sh $1
+    LEVEL=$(grep -m 1 "$1" levels.txt | cut -d ',' -f 2)
+    echo "Solving level $1"
+    cat gp_levels/$LEVEL.asset | python3 parse.py | cargo run -q --release -- --applescript | osascript -i
     sleep 2.5
 }
 
@@ -27,7 +29,6 @@ delay 1.5
 '
 }
 
-osascript -e 'activate application "Golf Peaks"'
 complete_level 01-01
 complete_level 01-02
 complete_level 01-03
