@@ -32,7 +32,7 @@ def main():
 
     y = yaml.load(sys.stdin)
 
-    starting_position = (0, 0)
+    starting_position = None
     portals = {}
     columns = y["MonoBehaviour"]["Level"].split("\n")
     for c in range(len(columns)):
@@ -43,7 +43,9 @@ def main():
             elevation = tile[1] if len(tile) > 1 else 0
             if terrain == '0':
                 print('ground,{},{},{}'.format(-c, -r, elevation))
-                starting_position = (-c, -r)
+                # one level has two golf tiles? the first is the correct start
+                if starting_position is None:
+                    starting_position = (-c, -r)
             elif terrain == '1':
                 print('hole,{},{},{}'.format(-c, -r, elevation))
             elif terrain == '2':
