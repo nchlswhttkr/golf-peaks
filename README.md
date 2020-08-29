@@ -1,8 +1,10 @@
 # Golf Peaks
 
-A solver for levels from [Golf Peaks](https://afterburn.itch.io/golf-peaks/) from [Afterburn Games](http://afterburn.games/).
+A solver that completes levels in [Golf Peaks](https://afterburn.itch.io/golf-peaks/) from [Afterburn Games](http://afterburn.games/).
 
-You can find also find a copy of these solutions in [`solutions.txt`](./solutions.txt).
+You can read more about how I created it in my [accompanying blog post](https://nicholas.cloud/blog/building-a-solver-for-golf-peaks/), and watch it [solve and complete every level in Golf Peaks](https://vimeo.com/452492906).
+
+You can find also find instructions on to complete each level in [`solutions.txt`](./solutions.txt).
 
 ![A video game puzzle where the player uses various moves to get a golf ball into the hole](./screenshot.png)
 
@@ -10,7 +12,7 @@ You can find also find a copy of these solutions in [`solutions.txt`](./solution
 
 Tested against the current macOS release (`v3.02`), though levels may differ slightly between platforms/releases.
 
-The first few worlds are solved from handwritten level files, but levels come from the source level files which the creators sent to me. Seeing as I don't own these files I'm not including them here, but if you'd like a copy you can email the creators.
+The first few worlds were originally completed using handwritten level files, but later I was able to use the source level files which the Afterburn team were awesome and sent to me. Seeing as I don't own these files I'm not including them here, but if you'd like a copy you can email the creators.
 
 ```sh
 # Solve a level from a handwritten file
@@ -22,11 +24,11 @@ pip3 install -r requirements.txt
 cat gp_levels/roll_1.asset | python3 parse.py | cargo run
 ```
 
-The solver can also produce AppleScript instructions to execute the key presses necessary to solve a level. You'll need to be using macOS, and grant permission for your terminal to control your computer.
+The solver can also produce AppleScript instructions that execute the key presses necessary to solve a level. You'll need to be using macOS, and grant permission for your terminal to control your computer.
 
-Open the level you want to solve, and feed the solver's (AppleScript) output into the OSA interpreter.
+Open the level you want to solve, and feed the solver's (AppleScript) output into an OSA interpreter.
 
-In some levels, the order of cards in the player's hand is different between the source file and the macOS release. There's a patch to correct these files.
+In some levels the order of cards in the player's hand is different between the source file and the macOS release. There's a patch to correct these files.
 
 ```sh
 # Check that your terminal has permission to control your computer
@@ -40,6 +42,8 @@ cat gp_levels/roll_1.asset | python3 parse.py | cargo run -q -- --applescript | 
 ```
 
 ## Notes
+
+These are just general notes from development about movement in the game that I made for reference.
 
 ### General Movement
 
