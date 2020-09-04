@@ -224,18 +224,6 @@ fn try_moves_to_reach_hole(
     position: Location,
     moves: Vec<Move>,
 ) -> Option<Vec<(i32, Direction, i32)>> {
-    // check whether hole reached
-    if let Some(current_tile) = map.get(&position) {
-        let in_hole = match current_tile.terrain {
-            Terrain::Hole => true,
-            _ => false,
-        };
-        if in_hole {
-            return Some(vec![]);
-        }
-    }
-
-    // try all moves in all directions
     for i in 0..moves.len() {
         for direction in [
             Direction::Up,
@@ -246,7 +234,10 @@ fn try_moves_to_reach_hole(
         .iter()
         {
             if let Some((end_position, steps)) = try_move(&map, position, moves[i], *direction) {
-                if end_position != position {
+                // good path that leads to hole? return
+                if map.get(&end_position).unwrap().terrain == Terrain::Hole {
+                    return Some(vec![(i as i32, *direction, steps)]);
+                } else if end_position != position {
                     let mut remaining_moves = moves.clone();
                     remaining_moves.remove(i);
                     if let Some(mut moves_to_solve) =
