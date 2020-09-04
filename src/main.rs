@@ -226,6 +226,7 @@ fn try_moves_to_reach_hole(
     moves: Vec<Move>,
     mut previous_positions: &mut Vec<Location>,
     mut known_movements: &mut HashMap<(Location, Move, Direction), Option<(Location, i32)>>,
+    mut step_count_to_beat: Option<i32>,
 ) -> Option<Vec<(i32, Direction, i32)>> {
     previous_positions.push(position);
     let mut solutions: Vec<Vec<(i32, Direction, i32)>> = Vec::new();
@@ -246,21 +247,37 @@ fn try_moves_to_reach_hole(
                 known_movements.insert((position, moves[i], *direction), move_result);
             }
             if let Some((end_position, steps)) = move_result {
-                // good path that leads to hole? return
-                if map.get(&end_position).unwrap().terrain == Terrain::Hole {
-                    solutions.push(vec![(i as i32, *direction, steps)]);
-                } else if !previous_positions.contains(&end_position) {
-                    let mut remaining_moves = moves.clone();
-                    remaining_moves.remove(i);
-                    if let Some(mut moves_to_solve) = try_moves_to_reach_hole(
-                        map,
-                        end_position,
-                        remaining_moves,
-                        &mut previous_positions,
-                        &mut known_movements,
-                    ) {
-                        moves_to_solve.insert(0, (i as i32, *direction, steps));
-                        solutions.push(moves_to_solve);
+                let remaining_steps;
+                if let Some(maximum_allowed_steps) = step_count_to_beat {
+                    remaining_steps = Some(maximum_allowed_steps - steps);
+                } else {
+                    remaining_steps = None;
+                }
+                // only continue if possible to beat step count
+                if remaining_steps.is_none() || remaining_steps.unwrap() > 0 {
+                    // good path that leads to hole? return
+                    if map.get(&end_position).unwrap().terrain == Terrain::Hole {
+                        solutions.push(vec![(i as i32, *direction, steps)]);
+                    } else if !previous_positions.contains(&end_position) {
+                        let mut remaining_moves = moves.clone();
+                        remaining_moves.remove(i);
+                        if let Some(mut moves_to_solve) = try_moves_to_reach_hole(
+                            map,
+                            end_position,
+                            remaining_moves,
+                            &mut previous_positions,
+                            &mut known_movements,
+                            remaining_steps,
+                        ) {
+                            moves_to_solve.insert(0, (i as i32, *direction, steps));
+                            step_count_to_beat = Some(
+                                moves_to_solve
+                                    .iter()
+                                    .map(|(_, _, steps)| steps)
+                                    .sum::<i32>(),
+                            );
+                            solutions.push(moves_to_solve);
+                        }
                     }
                 }
             }
@@ -513,6 +530,7 @@ fn main() {
         moves.clone(),
         &mut Vec::new(),
         &mut HashMap::new(),
+        None,
     ) {
         if show_step_count {
             println!("{}", solution_moves.iter().map(|(_, _, s)| s).sum::<i32>())
