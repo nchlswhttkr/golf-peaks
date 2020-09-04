@@ -223,8 +223,9 @@ fn try_moves_to_reach_hole(
     map: &HashMap<Location, Tile>,
     position: Location,
     moves: Vec<Move>,
-    previous_positions: Vec<Location>,
+    mut previous_positions: &mut Vec<Location>,
 ) -> Option<Vec<(i32, Direction, i32)>> {
+    previous_positions.push(position);
     for i in 0..moves.len() {
         for direction in [
             Direction::Up,
@@ -238,16 +239,14 @@ fn try_moves_to_reach_hole(
                 // good path that leads to hole? return
                 if map.get(&end_position).unwrap().terrain == Terrain::Hole {
                     return Some(vec![(i as i32, *direction, steps)]);
-                } else if end_position != position && !previous_positions.contains(&end_position) {
+                } else if !previous_positions.contains(&end_position) {
                     let mut remaining_moves = moves.clone();
                     remaining_moves.remove(i);
-                    let mut updated_previous_positions = previous_positions.clone();
-                    updated_previous_positions.push(position);
                     if let Some(mut moves_to_solve) = try_moves_to_reach_hole(
                         map,
                         end_position,
                         remaining_moves,
-                        updated_previous_positions,
+                        &mut previous_positions,
                     ) {
                         moves_to_solve.insert(0, (i as i32, *direction, steps));
                         return Some(moves_to_solve);
@@ -256,6 +255,7 @@ fn try_moves_to_reach_hole(
             }
         }
     }
+    previous_positions.pop();
     return None;
 }
 
@@ -491,7 +491,7 @@ fn main() {
         .is_some();
     let show_step_count: bool = std::env::args().find(|arg| arg == "--steps").is_some();
     if let Some(solution_moves) =
-        try_moves_to_reach_hole(&map, starting_position, moves.clone(), Vec::new())
+        try_moves_to_reach_hole(&map, starting_position, moves.clone(), &mut Vec::new())
     {
         if show_step_count {
             println!("{}", solution_moves.iter().map(|(_, _, s)| s).sum::<i32>())
