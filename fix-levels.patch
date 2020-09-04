@@ -1,30 +1,36 @@
 diff --recursive --unified=0 old/gp_levels/conveyor_hard1.asset new/gp_levels/conveyor_hard1.asset
 --- old/gp_levels/conveyor_hard1.asset	2019-02-04 11:08:54.000000000 +1100
-+++ new/gp_levels/conveyor_hard1.asset	2020-08-27 17:21:07.000000000 +1000
++++ new/gp_levels/conveyor_hard1.asset	2019-09-04 23:39:00.000000000 +1000
 @@ -35 +35 @@
 -  Cards: 0,4;0,5;0,7;0,9;0,8
 +  Cards: 0,4;0,5;0,7;0,8;0,9
 diff --recursive --unified=0 old/gp_levels/extra_4.asset new/gp_levels/extra_4.asset
 --- old/gp_levels/extra_4.asset	2019-02-04 11:11:32.000000000 +1100
-+++ new/gp_levels/extra_4.asset	2020-08-27 17:23:00.000000000 +1000
++++ new/gp_levels/extra_4.asset	2019-09-04 23:39:00.000000000 +1000
 @@ -35 +35 @@
 -  Cards: 3,0;0,1;1,1;0,3;2,1;1,0
 +  Cards: 0,1;0,3;1,0;3,0;1,1;2,1
+diff --recursive --unified=0 old/gp_levels/ice_4.asset new/gp_levels/ice_4.asset
+--- old/gp_levels/ice_4.asset	2019-02-04 11:11:32.000000000 +1100
++++ new/gp_levels/ice_4.asset	2019-09-04 23:39:00.000000000 +1000
+@@ -31 +31 @@
+-  Cards: 0,2;0,9;1,0;4,2;5,0
++  Cards: 0,2;0,9;1,0;5,0;4,2
 diff --recursive --unified=0 old/gp_levels/portal_1.asset new/gp_levels/portal_1.asset
 --- old/gp_levels/portal_1.asset	2019-01-07 12:41:26.000000000 +1100
-+++ new/gp_levels/portal_1.asset	2020-08-27 17:24:09.000000000 +1000
++++ new/gp_levels/portal_1.asset	2019-09-04 23:39:00.000000000 +1000
 @@ -17 +17 @@
 -  Cards: 1,0;0,1
 +  Cards: 0,1;1,0
 diff --recursive --unified=0 old/gp_levels/seven_z.asset new/gp_levels/seven_z.asset
 --- old/gp_levels/seven_z.asset	2018-12-17 13:53:02.000000000 +1100
-+++ new/gp_levels/seven_z.asset	2020-08-27 17:25:26.000000000 +1000
++++ new/gp_levels/seven_z.asset	2019-09-04 23:39:00.000000000 +1000
 @@ -18 +18 @@
 -  Cards: 0,2;0,4;0,5;4,1;2,1;2,3;3,1
 +  Cards: 0,2;0,4;0,5;2,1;2,3;3,1;4,1
 diff --recursive --unified=0 old/gp_levels/ten_x1.asset new/gp_levels/ten_x1.asset
 --- old/gp_levels/ten_x1.asset	2019-08-21 16:11:00.000000000 +1000
-+++ new/gp_levels/ten_x1.asset	2020-08-27 17:27:06.000000000 +1000
++++ new/gp_levels/ten_x1.asset	2019-09-04 23:39:00.000000000 +1000
 @@ -20 +20 @@
 -  Cards: 2,3;1,1;2,2;0,3;0,2;0,1
 +  Cards: 0,1;0,2;0,3;1,1;2,2;2,3
