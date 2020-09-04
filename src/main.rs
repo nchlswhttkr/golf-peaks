@@ -29,7 +29,7 @@ struct Tile {
     corner: Option<Corner>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub struct Move {
     distance: i32,
     airborne: i32,
@@ -224,6 +224,7 @@ fn try_moves_to_reach_hole(
     position: Location,
     moves: Vec<Move>,
     mut previous_positions: &mut Vec<Location>,
+    mut known_movements: &mut HashMap<(Location, Move, Direction), Option<(Location, i32)>>,
 ) -> Option<Vec<(i32, Direction, i32)>> {
     previous_positions.push(position);
     for i in 0..moves.len() {
@@ -235,7 +236,14 @@ fn try_moves_to_reach_hole(
         ]
         .iter()
         {
-            if let Some((end_position, steps)) = try_move(&map, position, moves[i], *direction) {
+            let move_result;
+            if let Some(known_move) = known_movements.get(&(position, moves[i], *direction)) {
+                move_result = *known_move;
+            } else {
+                move_result = try_move(&map, position, moves[i], *direction);
+                known_movements.insert((position, moves[i], *direction), move_result);
+            }
+            if let Some((end_position, steps)) = move_result {
                 // good path that leads to hole? return
                 if map.get(&end_position).unwrap().terrain == Terrain::Hole {
                     return Some(vec![(i as i32, *direction, steps)]);
@@ -247,6 +255,7 @@ fn try_moves_to_reach_hole(
                         end_position,
                         remaining_moves,
                         &mut previous_positions,
+                        &mut known_movements,
                     ) {
                         moves_to_solve.insert(0, (i as i32, *direction, steps));
                         return Some(moves_to_solve);
@@ -490,9 +499,13 @@ fn main() {
         .find(|arg| arg == "--applescript")
         .is_some();
     let show_step_count: bool = std::env::args().find(|arg| arg == "--steps").is_some();
-    if let Some(solution_moves) =
-        try_moves_to_reach_hole(&map, starting_position, moves.clone(), &mut Vec::new())
-    {
+    if let Some(solution_moves) = try_moves_to_reach_hole(
+        &map,
+        starting_position,
+        moves.clone(),
+        &mut Vec::new(),
+        &mut HashMap::new(),
+    ) {
         if show_step_count {
             println!("{}", solution_moves.iter().map(|(_, _, s)| s).sum::<i32>())
         } else if generate_applescript {
