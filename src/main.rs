@@ -279,7 +279,7 @@ fn try_move(
     mut remaining_move: Move,
     mut current_direction: Direction,
 ) -> Option<(Location, i32)> {
-    let mut steps = 0;
+    let mut steps = 3;
     let mut last_stable_position = starting_position;
     let mut current_position = starting_position;
     let mut loop_guard: HashSet<(Location, Direction)> = HashSet::new();
@@ -492,12 +492,13 @@ fn main() {
     let generate_applescript: bool = std::env::args()
         .find(|arg| arg == "--applescript")
         .is_some();
-    if generate_applescript {
-        println!("activate application \"Golf Peaks\"");
-    }
+    let show_step_count: bool = std::env::args().find(|arg| arg == "--steps").is_some();
     if let Some(solution_moves) = try_moves_to_reach_hole(&map, starting_position, moves.clone()) {
-        for (i, direction, steps) in solution_moves {
-            if generate_applescript {
+        if show_step_count {
+            println!("{}", solution_moves.iter().map(|(_, _, s)| s).sum::<i32>())
+        } else if generate_applescript {
+            println!("activate application \"Golf Peaks\"");
+            for (i, direction, steps) in solution_moves {
                 for _ in 0..i {
                     println!("tell application \"System Events\" to keystroke \"e\"");
                     println!("delay 0.05");
@@ -513,8 +514,11 @@ fn main() {
                 );
                 println!("delay 0.05");
                 println!("tell application \"System Events\" to key code 36");
-                println!("delay {}", (steps as f64 + 3.0) / 3.0)
-            } else {
+                println!("delay {}", steps as f64 / 3.0);
+                moves.remove(i as usize);
+            }
+        } else {
+            for (i, direction, _) in solution_moves {
                 println!(
                     "Use {}/{} {}",
                     moves[i as usize].airborne,
@@ -526,8 +530,8 @@ fn main() {
                         Direction::Right => "right",
                     }
                 );
+                moves.remove(i as usize);
             }
-            moves.remove(i as usize);
         }
     } else {
         std::process::exit(1);
