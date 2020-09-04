@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::io;
 
@@ -227,6 +228,7 @@ fn try_moves_to_reach_hole(
     mut known_movements: &mut HashMap<(Location, Move, Direction), Option<(Location, i32)>>,
 ) -> Option<Vec<(i32, Direction, i32)>> {
     previous_positions.push(position);
+    let mut solutions: Vec<Vec<(i32, Direction, i32)>> = Vec::new();
     for i in 0..moves.len() {
         for direction in [
             Direction::Up,
@@ -246,7 +248,7 @@ fn try_moves_to_reach_hole(
             if let Some((end_position, steps)) = move_result {
                 // good path that leads to hole? return
                 if map.get(&end_position).unwrap().terrain == Terrain::Hole {
-                    return Some(vec![(i as i32, *direction, steps)]);
+                    solutions.push(vec![(i as i32, *direction, steps)]);
                 } else if !previous_positions.contains(&end_position) {
                     let mut remaining_moves = moves.clone();
                     remaining_moves.remove(i);
@@ -258,14 +260,20 @@ fn try_moves_to_reach_hole(
                         &mut known_movements,
                     ) {
                         moves_to_solve.insert(0, (i as i32, *direction, steps));
-                        return Some(moves_to_solve);
+                        solutions.push(moves_to_solve);
                     }
                 }
             }
         }
     }
     previous_positions.pop();
-    return None;
+    return solutions.into_iter().min_by(|a, b| compare_solutions(a, b));
+}
+
+fn compare_solutions(a: &Vec<(i32, Direction, i32)>, b: &Vec<(i32, Direction, i32)>) -> Ordering {
+    let sum_a = a.iter().map(|(_, _, steps)| steps).sum::<i32>();
+    let sum_b = b.iter().map(|(_, _, steps)| steps).sum::<i32>();
+    return sum_a.cmp(&sum_b);
 }
 
 fn opposite_direction_of(direction: &Direction) -> Direction {
