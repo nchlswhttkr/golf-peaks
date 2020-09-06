@@ -20,7 +20,6 @@ cargo run < old-levels/01-01.level.txt
 
 # Solve a level from the source level file
 tar -xf /path/to/gp_levels.zip
-pip3 install -r requirements.txt
 cat gp_levels/roll_1.asset | python3 parse.py | cargo run
 ```
 

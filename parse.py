@@ -1,5 +1,4 @@
 import sys
-import yaml
 
 slope_orientation_map = {
     'NW': 'down',
@@ -23,20 +22,32 @@ conveyor_orientation_map = {
 
 
 def main():
-    # There's some stuff going on here with YAML tags that I haven't got a
-    # clue about, skip the first three lines where they appear.
-    # https://yaml.org/spec/1.1/#named%20tag%20handle/
-    sys.stdin.readline()
-    sys.stdin.readline()
-    sys.stdin.readline()
+    level = ''
+    cards = ''
 
-    y = yaml.load(sys.stdin, Loader=yaml.Loader)
+    # Read up until the level starts
+    line = sys.stdin.readline()
+    while not line.startswith('  Level:'):
+        line = sys.stdin.readline()
+
+    # The level may span many lines, it stops right before the cards
+    allowed_characters = '0123456789-,;NESW\\rn\n'
+    while not line.startswith('  Cards:'):
+        for c in line:
+            if c in allowed_characters:
+                level += c
+        line = sys.stdin.readline()
+
+    cards += line.lstrip('  Cards: ').rstrip()
+    level = level.replace('\\n', '\n')   # interpret newlines
+    level = level.replace('\\r', '')     # strip carriage returns
+    level = level.replace('\n\n', '\n')  # some levels have duplicated newlines
 
     starting_position = None
     portals = {}
-    columns = y["MonoBehaviour"]["Level"].split("\n")
+    columns = level.split("\n")
     for c in range(len(columns)):
-        tiles = columns[c].replace('\r', '').rstrip().split(';')
+        tiles = columns[c].rstrip().split(';')
         for r in range(len(tiles)):
             tile = tiles[r].split(',')
             terrain = tile[0]
@@ -86,7 +97,7 @@ def main():
                                                corner_orientation_map[tile[2] if len(tile) > 2 else 'NW']))
     print()
 
-    for card in y["MonoBehaviour"]["Cards"].split(";"):
+    for card in cards.split(";"):
         # FIXME terrible way of getting ground/air in the right order
         print(card[::-1])
     print()
