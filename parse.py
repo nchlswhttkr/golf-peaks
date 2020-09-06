@@ -30,7 +30,7 @@ def main():
     sys.stdin.readline()
     sys.stdin.readline()
 
-    y = yaml.load(sys.stdin)
+    y = yaml.load(sys.stdin, Loader=yaml.Loader)
 
     starting_position = None
     portals = {}
@@ -59,7 +59,7 @@ def main():
                                                   r, elevation, corner_orientation_map[tile[2] if len(tile) > 2 else 'NW']))
             elif terrain == '7':
                 print('slope,{},{},{},{}'.format(-c, -r,
-                                                 elevation, slope_orientation_map[tile[2]]))
+                                                 elevation, slope_orientation_map[tile[2] if len(tile) > 2 else 'NW']))
             elif terrain == '8':
                 pass  # OOB tile, skip
             elif terrain == '10':
