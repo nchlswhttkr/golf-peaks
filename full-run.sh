@@ -3,10 +3,10 @@
 set -euo pipefail
 
 function complete_level {
-    LEVEL=$(grep -m 1 "$1" levels.txt | cut -d ',' -f 2)
+    ASSET=$(grep -m 1 "$1" levels.txt | cut -d ',' -f 2)
     echo "Solving level $1"
-    cat gp_levels/$LEVEL.asset | python3 parse.py | cargo run -q --release -- --applescript | osascript -i
-    sleep 2.5
+    /usr/local/bin/python3.8 parse.py < gp_levels/$ASSET.asset | ./target/release/golf-peaks --applescript | osascript -i
+    sleep 2
 }
 
 function next_world {
@@ -25,10 +25,11 @@ delay 0.05
 tell application "System Events" to keystroke "a"
 delay 0.05
 tell application "System Events" to key code 36
-delay 1.5
+delay 1
 '
 }
 
+cargo build -q --release
 complete_level 01-01
 complete_level 01-02
 complete_level 01-03

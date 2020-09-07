@@ -537,9 +537,16 @@ fn main() {
         } else if generate_applescript {
             println!("activate application \"Golf Peaks\"");
             for (i, direction, steps) in solution_moves {
-                for _ in 0..i {
-                    println!("tell application \"System Events\" to keystroke \"e\"");
-                    println!("delay 0.05");
+                if i > moves.len() as i32 / 2 {
+                    for _ in 0..(moves.len() as i32 - i) {
+                        println!("tell application \"System Events\" to keystroke \"q\"");
+                        println!("delay 0.05");
+                    }
+                } else {
+                    for _ in 0..i {
+                        println!("tell application \"System Events\" to keystroke \"e\"");
+                        println!("delay 0.05");
+                    }
                 }
                 println!(
                     "tell application \"System Events\" to keystroke \"{}\"",
@@ -553,6 +560,10 @@ fn main() {
                 println!("delay 0.05");
                 println!("tell application \"System Events\" to key code 36");
                 println!("delay {}", steps as f64 / 3.0);
+                // FIXME timing is off on extremely long moves, add a buffer
+                if steps > 18 {
+                    println!("delay 0.5")
+                }
                 moves.remove(i as usize);
             }
         } else {
