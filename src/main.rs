@@ -223,7 +223,7 @@ fn interpret_map_and_moves(
 fn try_moves_to_reach_hole(
     map: &HashMap<Location, Tile>,
     position: Location,
-    moves: Vec<Move>,
+    mut moves: &mut Vec<Move>,
     mut previous_positions: &mut Vec<Location>,
     mut known_movements: &mut HashMap<(Location, Move, Direction), Option<(Location, i32)>>,
     mut step_count_to_beat: Option<i32>,
@@ -231,6 +231,7 @@ fn try_moves_to_reach_hole(
     previous_positions.push(position);
     let mut solutions: Vec<Vec<(i32, Direction, i32)>> = Vec::new();
     for i in 0..moves.len() {
+        let current_move = moves.remove(i);
         for direction in [
             Direction::Up,
             Direction::Down,
@@ -240,11 +241,11 @@ fn try_moves_to_reach_hole(
         .iter()
         {
             let move_result;
-            if let Some(known_move) = known_movements.get(&(position, moves[i], *direction)) {
+            if let Some(known_move) = known_movements.get(&(position, current_move, *direction)) {
                 move_result = *known_move;
             } else {
-                move_result = try_move(&map, position, moves[i], *direction);
-                known_movements.insert((position, moves[i], *direction), move_result);
+                move_result = try_move(&map, position, current_move, *direction);
+                known_movements.insert((position, current_move, *direction), move_result);
             }
             if let Some((end_position, steps)) = move_result {
                 let remaining_steps;
@@ -259,12 +260,10 @@ fn try_moves_to_reach_hole(
                     if map.get(&end_position).unwrap().terrain == Terrain::Hole {
                         solutions.push(vec![(i as i32, *direction, steps)]);
                     } else if !previous_positions.contains(&end_position) {
-                        let mut remaining_moves = moves.clone();
-                        remaining_moves.remove(i);
                         if let Some(mut moves_to_solve) = try_moves_to_reach_hole(
                             map,
                             end_position,
-                            remaining_moves,
+                            &mut moves,
                             &mut previous_positions,
                             &mut known_movements,
                             remaining_steps,
@@ -282,6 +281,7 @@ fn try_moves_to_reach_hole(
                 }
             }
         }
+        moves.insert(i, current_move)
     }
     previous_positions.pop();
     return solutions.into_iter().min_by(|a, b| compare_solutions(a, b));
@@ -527,7 +527,7 @@ fn main() {
     if let Some(solution_moves) = try_moves_to_reach_hole(
         &map,
         starting_position,
-        moves.clone(),
+        &mut moves,
         &mut Vec::new(),
         &mut HashMap::new(),
         None,
