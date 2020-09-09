@@ -1,15 +1,5 @@
----
-title: "Benchmarks"
-author: "Nicholas Whittaker"
-date: "07/09/2020"
-output:
-  html_document: default
-  pdf_document: default
----
+# Load data
 
-## Load data from assorted benchmark runs.
-
-```{r, results="hide"}
 load_run = function (filename) {
   run = read.csv(filename)
   run$process_time = run$user_time + run$system_time
@@ -25,11 +15,9 @@ data = list(
   "Disregard nonviable paths" = load_run("solver-benchmark-06.csv"),
   "Disregard nonviable paths v2" = load_run("solver-benchmark-07.csv")
 )
-```
 
-## Average completion time between runs
+# Average completion time between runs
 
-```{r, results="hide"}
 measure_run_times = function(run) {
   time_per_iteration = aggregate(run$process_time, list(run$iteration), FUN=sum)$x
   mean_time_of_run = mean(time_per_iteration)
@@ -50,13 +38,10 @@ lines(x=1:length(data), y=run_times[,2], col="blue")
 abline(h=0:3, col="#CCCCCC99")
 text(x=1:length(run_times), y=rep(-0.3, times=7), labels=names(data), adj=1, xpd=NA, srt=35)
 dev.off()
-```
 
-![](./average-process-execution-time.png)
 
-## Level completion times across runs
+# Level completion times across runs
 
-```{r, results="hide"}
 get_average_level_time_normalised = function(run) {
   levels = aggregate(run$process_time, list(run$level), FUN=mean)$x
   return((levels - min(levels)) / (max(levels) - min(levels)))
@@ -71,6 +56,3 @@ title(main="Level completion time distribution, normalised across runs", cex.mai
 abline(v=1:length(level_times), col="#CCCCCC99")
 text(x=1:length(level_times), y=rep(-0.1, times=7), labels=names(level_times), adj=1, xpd=NA, srt=35)
 dev.off()
-```
-
-![](./level-completion-time-normalised.png)
