@@ -1,2 +1,6 @@
 target/
 gp_levels/
+.Rproj.user
+benchmarks/benchmarks.html
+benchmarks/benchmarks.pdf
+benchmarks/*.png
