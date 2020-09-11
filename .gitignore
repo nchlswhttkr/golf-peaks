@@ -4,3 +4,5 @@ gp_levels/
 benchmarks/benchmarks.html
 benchmarks/benchmarks.pdf
 benchmarks/*.png
+benchmarks/longest-level-times.md
+benchmarks/.Rhistory

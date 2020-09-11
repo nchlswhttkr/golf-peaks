@@ -2,7 +2,10 @@
 
 A solver that completes levels in [Golf Peaks](https://afterburn.itch.io/golf-peaks/) from [Afterburn Games](http://afterburn.games/).
 
-You can read more about how I created it in my [accompanying blog post](https://nicholas.cloud/blog/building-a-solver-for-golf-peaks/), and watch it [solve and complete every level in Golf Peaks](https://vimeo.com/452492906).
+If you'd like to know more you can [watch it in action](https://vimeo.com/455241666), or read about it on my blog.
+
+- [Building a Solver for Golf Peaks](https://nicholas.cloud/blog/building-a-solver-for-golf-peaks/)
+- [Speeding Up a Solver for Golf Peaks](https://nicholas.cloud/blog/speeding-up-a-solver-for-golf-peaks/)
 
 You can find also find instructions on to complete each level in [`solutions.txt`](./solutions.txt).
 
