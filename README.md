@@ -18,9 +18,6 @@ Tested against the current macOS release (`v3.02`), though levels may differ sli
 The first few worlds were originally completed using handwritten level files, but later I was able to use the source level files which the Afterburn team were awesome and sent to me. Seeing as I don't own these files I'm not including them here, but if you'd like a copy you can email the creators.
 
 ```sh
-# Solve a level from a handwritten file
-cargo run < old-levels/01-01.level.txt
-
 # Solve a level from the source level file
 tar -xf /path/to/gp_levels.zip
 cat gp_levels/roll_1.asset | python3 parse.py | cargo run
