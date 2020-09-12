@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::io;
 
@@ -229,7 +228,7 @@ fn try_moves_to_reach_hole(
     mut step_count_to_beat: Option<i32>,
 ) -> Option<Vec<(i32, Direction, i32)>> {
     previous_positions.push(position);
-    let mut solutions: Vec<Vec<(i32, Direction, i32)>> = Vec::new();
+    let mut solution: Option<Vec<(i32, Direction, i32)>> = None;
     for i in 0..moves.len() {
         let current_move = moves.remove(i);
         for direction in [
@@ -258,7 +257,8 @@ fn try_moves_to_reach_hole(
                 if remaining_steps.is_none() || remaining_steps.unwrap() > 0 {
                     // good path that leads to hole? return
                     if map.get(&end_position).unwrap().terrain == Terrain::Hole {
-                        solutions.push(vec![(i as i32, *direction, steps)]);
+                        solution = Some(vec![(i as i32, *direction, steps)]);
+                        step_count_to_beat = Some(steps);
                     } else if !previous_positions.contains(&end_position) {
                         if let Some(mut moves_to_solve) = try_moves_to_reach_hole(
                             map,
@@ -275,7 +275,7 @@ fn try_moves_to_reach_hole(
                                     .map(|(_, _, steps)| steps)
                                     .sum::<i32>(),
                             );
-                            solutions.push(moves_to_solve);
+                            solution = Some(moves_to_solve);
                         }
                     }
                 }
@@ -284,13 +284,7 @@ fn try_moves_to_reach_hole(
         moves.insert(i, current_move)
     }
     previous_positions.pop();
-    return solutions.into_iter().min_by(|a, b| compare_solutions(a, b));
-}
-
-fn compare_solutions(a: &Vec<(i32, Direction, i32)>, b: &Vec<(i32, Direction, i32)>) -> Ordering {
-    let sum_a = a.iter().map(|(_, _, steps)| steps).sum::<i32>();
-    let sum_b = b.iter().map(|(_, _, steps)| steps).sum::<i32>();
-    return sum_a.cmp(&sum_b);
+    return solution;
 }
 
 fn opposite_direction_of(direction: &Direction) -> Direction {
