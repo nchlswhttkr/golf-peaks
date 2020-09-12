@@ -58,11 +58,21 @@ fn main() {
         }
     }
     let splits: Vec<&str> = buffer.trim_end().split("\n\n").collect();
-    let (map, mut moves, starting_position) = interpret_map_and_moves(
+    let (map, mut all_cards, starting_position) = interpret_starting_conditions(
         splits[0].split("\n").collect(),
         splits[1].split("\n").collect(),
         splits[2],
     );
+    let mut unique_cards: Vec<Card> = Vec::new();
+    let mut card_count: Vec<i32> = Vec::new();
+    for card in &all_cards {
+        if let Some(i) = unique_cards.iter().position(|c| c == card) {
+            card_count[i] += 1;
+        } else {
+            unique_cards.push(*card);
+            card_count.push(1);
+        }
+    }
 
     // Determine output format (plain, applescript, step)
     let generate_applescript: bool = std::env::args()
@@ -74,7 +84,8 @@ fn main() {
     if let Some(solution_moves) = try_moves_to_reach_hole(
         &map,
         starting_position,
-        &mut moves,
+        &unique_cards,
+        &mut card_count,
         &mut Vec::new(),
         &mut HashMap::new(),
         None,
@@ -83,9 +94,10 @@ fn main() {
             println!("{}", solution_moves.iter().map(|(_, _, s)| s).sum::<i32>())
         } else if generate_applescript {
             println!("activate application \"Golf Peaks\"");
-            for (i, direction, steps) in solution_moves {
-                if i > moves.len() as i32 / 2 {
-                    for _ in 0..(moves.len() as i32 - i) {
+            for (card, direction, steps) in solution_moves {
+                let i = all_cards.iter().position(|&c| c == card).unwrap();
+                if i > all_cards.len() / 2 {
+                    for _ in 0..(all_cards.len() - i) {
                         println!("tell application \"System Events\" to keystroke \"q\"");
                         println!("delay 0.05");
                     }
@@ -111,14 +123,14 @@ fn main() {
                 if steps > 18 {
                     println!("delay 0.5")
                 }
-                moves.remove(i as usize);
+                all_cards.remove(i);
             }
         } else {
-            for (i, direction, _) in solution_moves {
+            for (card, direction, _) in solution_moves {
                 println!(
                     "Use {}/{} {}",
-                    moves[i as usize].airborne,
-                    moves[i as usize].rolling,
+                    card.airborne,
+                    card.rolling,
                     match direction {
                         Direction::Up => "up",
                         Direction::Down => "down",
@@ -126,7 +138,6 @@ fn main() {
                         Direction::Right => "right",
                     }
                 );
-                moves.remove(i as usize);
             }
         }
     } else {
@@ -134,7 +145,7 @@ fn main() {
     }
 }
 
-fn interpret_map_and_moves(
+fn interpret_starting_conditions(
     map_lines: Vec<&str>,
     move_lines: Vec<&str>,
     starting_position_line: &str,
@@ -319,15 +330,28 @@ fn interpret_map_and_moves(
 fn try_moves_to_reach_hole(
     map: &HashMap<Location, Tile>,
     position: Location,
-    mut cards: &mut Vec<Card>,
+    cards: &Vec<Card>,
+    mut card_counts: &mut Vec<i32>,
     mut previous_positions: &mut Vec<Location>,
     mut known_moves: &mut HashMap<(Location, Card, Direction), Option<(Location, i32)>>,
     mut step_count_to_beat: Option<i32>,
-) -> Option<Vec<(i32, Direction, i32)>> {
+) -> Option<Vec<(Card, Direction, i32)>> {
     previous_positions.push(position);
-    let mut solution: Option<Vec<(i32, Direction, i32)>> = None;
-    for i in 0..cards.len() {
-        let current_card = cards.remove(i);
+    let mut solution: Option<Vec<(Card, Direction, i32)>> = None;
+    let cards_to_use: Vec<usize> = card_counts
+        .iter()
+        .enumerate()
+        .filter_map(|(i, &count)| {
+            if count > 0 {
+                return Some(i);
+            } else {
+                return None;
+            }
+        })
+        .collect();
+    for i in cards_to_use {
+        card_counts[i] -= 1;
+        let current_card = cards[i];
         for direction in [
             Direction::Up,
             Direction::Down,
@@ -354,19 +378,20 @@ fn try_moves_to_reach_hole(
                 if remaining_steps.is_none() || remaining_steps.unwrap() > 0 {
                     // If movement ends on the hole it must be an acceptable solution
                     if map.get(&end_position).unwrap().terrain == Terrain::Hole {
-                        solution = Some(vec![(i as i32, *direction, steps)]);
+                        solution = Some(vec![(current_card, *direction, steps)]);
                         step_count_to_beat = Some(steps);
                     // Otherwise, keep building a path to try and reach the hole
                     } else if !previous_positions.contains(&end_position) {
                         if let Some(mut moves_to_solve) = try_moves_to_reach_hole(
                             map,
                             end_position,
-                            &mut cards,
+                            &cards,
+                            &mut card_counts,
                             &mut previous_positions,
                             &mut known_moves,
                             remaining_steps,
                         ) {
-                            moves_to_solve.insert(0, (i as i32, *direction, steps));
+                            moves_to_solve.insert(0, (current_card, *direction, steps));
                             step_count_to_beat = Some(
                                 moves_to_solve
                                     .iter()
@@ -379,7 +404,7 @@ fn try_moves_to_reach_hole(
                 }
             }
         }
-        cards.insert(i, current_card)
+        card_counts[i] += 1;
     }
     previous_positions.pop();
     return solution;

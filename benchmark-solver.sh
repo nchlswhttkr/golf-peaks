@@ -5,8 +5,15 @@ set -euo pipefail
 ITERATIONS=100
 DESTINATION="/tmp/solver-benchmark.txt"
 
+# Prepare input/output files, build binary
 rm -f $DESTINATION
 cargo build -q --release
+mkdir -p /tmp/levels
+rm -f /tmp/levels/*
+cut -d "," -f 1 levels.txt | while read LEVEL; do
+    ASSET=$(grep $LEVEL levels.txt | cut -d "," -f 2)
+    python3 parse.py < gp_levels/$ASSET.asset > /tmp/levels/$LEVEL.level.txt
+done
 
 for _ in $(seq 1 $ITERATIONS); do
     cut -d ',' -f 1 levels.txt | while read LEVEL; do
