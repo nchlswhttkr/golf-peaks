@@ -31,7 +31,7 @@ struct Tile {
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
-pub struct Move {
+pub struct Card {
     distance: i32,
     airborne: i32,
 }
@@ -53,7 +53,7 @@ pub struct Location {
 fn interpret_map_and_moves(
     map_lines: Vec<&str>,
     move_lines: Vec<&str>,
-) -> (HashMap<Location, Tile>, Vec<Move>) {
+) -> (HashMap<Location, Tile>, Vec<Card>) {
     let mut map: HashMap<Location, Tile> = HashMap::new();
     for line in map_lines {
         let items: Vec<&str> = line.split(",").collect();
@@ -207,11 +207,11 @@ fn interpret_map_and_moves(
             );
         }
     }
-    let moves: Vec<Move> = move_lines
+    let moves: Vec<Card> = move_lines
         .iter()
         .map(|m| {
             let s: Vec<&str> = m.split(",").collect();
-            return Move {
+            return Card {
                 distance: s[0].parse::<i32>().unwrap(),
                 airborne: s.get(1).unwrap_or(&"0").parse::<i32>().unwrap(),
             };
@@ -223,9 +223,9 @@ fn interpret_map_and_moves(
 fn try_moves_to_reach_hole(
     map: &HashMap<Location, Tile>,
     position: Location,
-    mut moves: &mut Vec<Move>,
+    mut moves: &mut Vec<Card>,
     mut previous_positions: &mut Vec<Location>,
-    mut known_movements: &mut HashMap<(Location, Move, Direction), Option<(Location, i32)>>,
+    mut known_movements: &mut HashMap<(Location, Card, Direction), Option<(Location, i32)>>,
     mut step_count_to_beat: Option<i32>,
 ) -> Option<Vec<(i32, Direction, i32)>> {
     previous_positions.push(position);
@@ -307,7 +307,7 @@ fn opposite_direction_of(direction: &Direction) -> Direction {
 fn try_move(
     map: &HashMap<Location, Tile>,
     starting_position: Location,
-    mut remaining_move: Move,
+    mut remaining_move: Card,
     mut current_direction: Direction,
 ) -> Option<(Location, i32)> {
     let mut steps = 3;
@@ -598,7 +598,7 @@ mod test_general_movement {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
@@ -610,7 +610,7 @@ mod test_general_movement {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_none(), true);
     }
@@ -621,7 +621,7 @@ mod test_general_movement {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 0, airborne: 2 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 0, airborne: 2 }, Direction::Right);
         
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
@@ -634,7 +634,7 @@ mod test_general_movement {
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 3, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 2 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 2 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 3, y: 0 });
@@ -647,7 +647,7 @@ mod test_general_movement {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: -1, y: 0 });
@@ -659,7 +659,7 @@ mod test_general_movement {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Hole, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 2 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 2 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
@@ -671,7 +671,7 @@ mod test_general_movement {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
@@ -690,7 +690,7 @@ mod test_corners {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: Some(Corner::Southeast) });
         map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 1 });
@@ -702,7 +702,7 @@ mod test_corners {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: Some(Corner::Northwest) });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
@@ -714,7 +714,7 @@ mod test_corners {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: Some(Corner::Northwest) });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
@@ -732,7 +732,7 @@ mod test_slopes {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Right), elevation: 1, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
@@ -746,7 +746,7 @@ mod test_slopes {
         map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 2 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 3, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 3, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 2 });
@@ -759,7 +759,7 @@ mod test_slopes {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Left), elevation: 1, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
@@ -772,7 +772,7 @@ mod test_slopes {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Up), elevation: 1, corner: None });
         map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 1 });
@@ -785,7 +785,7 @@ mod test_slopes {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Left), elevation: 1, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
@@ -798,7 +798,7 @@ mod test_slopes {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Left), elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 2 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 2 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
@@ -816,7 +816,7 @@ mod test_traps {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Trap, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
@@ -827,7 +827,7 @@ mod test_traps {
         let mut map: HashMap<Location, Tile> = HashMap::new();
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Trap, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
@@ -839,7 +839,7 @@ mod test_traps {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Trap, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 0, airborne: 1 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 0, airborne: 1 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
@@ -858,7 +858,7 @@ mod test_quicksand {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Quicksand, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
@@ -870,7 +870,7 @@ mod test_quicksand {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Quicksand, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_none(), true);
     }
@@ -888,7 +888,7 @@ mod test_water {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Water, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 3, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 3, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
@@ -901,7 +901,7 @@ mod test_water {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Water, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
@@ -914,7 +914,7 @@ mod test_water {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Right), elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Water, elevation: -1, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
@@ -927,7 +927,7 @@ mod test_water {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Quicksand, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Water, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
@@ -940,7 +940,7 @@ mod test_water {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Spring, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Water, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
@@ -960,7 +960,7 @@ mod test_spring {
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
         map.insert(Location { x: 3, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 3, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 3, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 3, y: 0 });
@@ -972,7 +972,7 @@ mod test_spring {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Spring, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
@@ -985,7 +985,7 @@ mod test_spring {
         map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Spring, elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: -1, y: 0 });
@@ -1004,7 +1004,7 @@ mod test_portals {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Portal(Location { x: 1, y: 2 }), elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 2 }, Tile { terrain: Terrain::Portal(Location { x: 1, y: 0 }), elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 2 });
@@ -1017,7 +1017,7 @@ mod test_portals {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Portal(Location { x: 1, y: 2 }), elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 2 }, Tile { terrain: Terrain::Portal(Location { x: 1, y: 0 }), elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 0, airborne: 1 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 0, airborne: 1 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 2 });
@@ -1031,7 +1031,7 @@ mod test_portals {
         map.insert(Location { x: 1, y: 2 }, Tile { terrain: Terrain::Portal(Location { x: 1, y: 0 }), elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 2 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 1 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 1 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 2, y: 2 });
@@ -1079,7 +1079,7 @@ mod test_todos_and_undefined_behaviour {
         // map.insert(Location { x: 0, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
         // map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Slope(Direction::Left), elevation: 0, corner: None });
 
-        // let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        // let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         // assert_eq!(result.is_some(), true);
         // assert_eq!(result.unwrap().0, Location { x: 0, y: 0 });
@@ -1099,7 +1099,7 @@ mod test_conveyors {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Conveyor(Direction::Down), elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 2, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 2, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
@@ -1112,7 +1112,7 @@ mod test_conveyors {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Conveyor(Direction::Up), elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 1 });
@@ -1125,7 +1125,7 @@ mod test_conveyors {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Conveyor(Direction::Up), elevation: 0, corner: None });
         map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_none(), true);
     }
@@ -1143,7 +1143,7 @@ mod test_ice {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
@@ -1156,7 +1156,7 @@ mod test_ice {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: None });
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 0 });
@@ -1175,7 +1175,7 @@ mod test_ice {
         map.insert(Location { x: 2, y: 0 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: None });
         map.insert(Location { x: 3, y: 0 }, Tile { terrain: Terrain::Ground, elevation: 1, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 3, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 3, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 2, y: 0 });
@@ -1188,7 +1188,7 @@ mod test_ice {
         map.insert(Location { x: 1, y: 0 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: Some(Corner::Southeast) });
         map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ground, elevation: 0, corner: None });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 1, airborne: 0 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 1, airborne: 0 }, Direction::Right);
 
         assert_eq!(result.is_some(), true);
         assert_eq!(result.unwrap().0, Location { x: 1, y: 1 });
@@ -1203,7 +1203,7 @@ mod test_ice {
         map.insert(Location { x: 1, y: 1 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: Some(Corner::Northwest) });
         map.insert(Location { x: 2, y: 1 }, Tile { terrain: Terrain::Ice, elevation: 0, corner: Some(Corner::Northeast) });
 
-        let result = try_move(&map, Location { x: 0, y: 0 }, Move { distance: 0, airborne: 1 }, Direction::Right);
+        let result = try_move(&map, Location { x: 0, y: 0 }, Card { distance: 0, airborne: 1 }, Direction::Right);
 
         assert_eq!(result.is_none(), true);
     }
