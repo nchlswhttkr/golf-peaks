@@ -98,8 +98,7 @@ def main():
     print()
 
     for card in cards.split(";"):
-        # FIXME terrible way of getting ground/air in the right order
-        print(card[::-1])
+        print(card)
     print()
 
     print("{},{}".format(starting_position[0], starting_position[1]))
