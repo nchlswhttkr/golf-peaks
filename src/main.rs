@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::io;
 
 #[derive(Clone, Copy)]
@@ -81,15 +81,9 @@ fn main() {
     let show_step_count: bool = std::env::args().find(|arg| arg == "--steps").is_some();
 
     // Attempt to solve, return appropriate output if a solution is found
-    if let Some(solution_moves) = try_moves_to_reach_hole(
-        &map,
-        starting_position,
-        &unique_cards,
-        &mut card_count,
-        &mut Vec::new(),
-        &mut HashMap::new(),
-        None,
-    ) {
+    if let Some(solution_moves) =
+        try_moves_to_reach_hole(&map, starting_position, &unique_cards, &mut card_count)
+    {
         if show_step_count {
             println!("{}", solution_moves.iter().map(|(_, _, s)| s).sum::<i32>())
         } else if generate_applescript {
@@ -327,87 +321,121 @@ fn interpret_starting_conditions(
     return (map, moves, starting_position);
 }
 
+#[derive(Eq)]
+struct Item {
+    steps: i32,
+    position: Location,
+    moves: Vec<(Card, Direction, i32)>,
+    quota: Vec<i32>,
+}
+
+impl Ord for Item {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        return self.steps.cmp(&other.steps).reverse();
+    }
+}
+
+impl PartialOrd for Item {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Item {
+    fn eq(&self, other: &Self) -> bool {
+        self.steps == other.steps
+    }
+}
+
 fn try_moves_to_reach_hole(
     map: &HashMap<Location, Tile>,
-    position: Location,
+    starting_position: Location,
     cards: &Vec<Card>,
-    mut card_counts: &mut Vec<i32>,
-    mut previous_positions: &mut Vec<Location>,
-    mut known_moves: &mut HashMap<(Location, Card, Direction), Option<(Location, i32)>>,
-    mut step_count_to_beat: Option<i32>,
+    card_counts: &mut Vec<i32>,
 ) -> Option<Vec<(Card, Direction, i32)>> {
-    previous_positions.push(position);
-    let mut solution: Option<Vec<(Card, Direction, i32)>> = None;
-    let cards_to_use: Vec<usize> = card_counts
-        .iter()
-        .enumerate()
-        .filter_map(|(i, &count)| {
-            if count > 0 {
-                return Some(i);
-            } else {
-                return None;
-            }
-        })
-        .collect();
-    for i in cards_to_use {
-        card_counts[i] -= 1;
-        let current_card = cards[i];
-        for direction in [
-            Direction::Up,
-            Direction::Down,
-            Direction::Left,
-            Direction::Right,
-        ]
-        .iter()
-        {
-            let move_result;
-            if let Some(known_move) = known_moves.get(&(position, current_card, *direction)) {
-                move_result = *known_move;
-            } else {
-                move_result = try_move(&map, position, current_card, *direction);
-                known_moves.insert((position, current_card, *direction), move_result);
-            }
-            if let Some((end_position, steps)) = move_result {
-                let remaining_steps;
-                if let Some(max_steps) = step_count_to_beat {
-                    remaining_steps = Some(max_steps - steps);
-                } else {
-                    remaining_steps = None;
-                }
-                // Only evaluate moves that beat the target step count
-                if remaining_steps.is_none() || remaining_steps.unwrap() > 0 {
-                    // If movement ends on the hole it must be an acceptable solution
-                    if map.get(&end_position).unwrap().terrain == Terrain::Hole {
-                        solution = Some(vec![(current_card, *direction, steps)]);
-                        step_count_to_beat = Some(steps);
-                    // Otherwise, keep building a path to try and reach the hole
-                    } else if !previous_positions.contains(&end_position) {
-                        if let Some(mut moves_to_solve) = try_moves_to_reach_hole(
-                            map,
-                            end_position,
-                            &cards,
-                            &mut card_counts,
-                            &mut previous_positions,
-                            &mut known_moves,
-                            remaining_steps,
-                        ) {
-                            moves_to_solve.insert(0, (current_card, *direction, steps));
-                            step_count_to_beat = Some(
-                                moves_to_solve
-                                    .iter()
-                                    .map(|(_, _, steps)| steps)
-                                    .sum::<i32>(),
-                            );
-                            solution = Some(moves_to_solve);
+    // Compute every possible valid move
+    let mut sources: HashMap<Location, Vec<(Location, Card, Direction, i32)>> = HashMap::new();
+    let mut found_hole: Option<Location> = None; // assumes level has a hole, good enough
+    for (location, tile) in map {
+        let on_stable_ground = match tile.terrain {
+            Terrain::Ground => true,
+            Terrain::Trap => true,
+            Terrain::Spring => true,
+            Terrain::Portal(_) => true,
+            Terrain::Ice => true,
+            _ => false,
+        };
+        if on_stable_ground {
+            for card in cards {
+                for direction in vec![
+                    Direction::Up,
+                    Direction::Down,
+                    Direction::Left,
+                    Direction::Right,
+                ] {
+                    if let Some((destination, steps)) = try_move(map, *location, *card, direction) {
+                        if let Some(moves) = sources.get_mut(&destination) {
+                            moves.push((*location, *card, direction, steps));
+                        } else {
+                            let moves: Vec<(Location, Card, Direction, i32)> =
+                                vec![(*location, *card, direction, steps)];
+                            sources.insert(destination, moves);
                         }
                     }
                 }
             }
+        } else if tile.terrain == Terrain::Hole {
+            found_hole = Some(*location);
         }
-        card_counts[i] += 1;
     }
-    previous_positions.pop();
-    return solution;
+
+    // Start from the hole, record the available edges
+    let mut heap: BinaryHeap<Item> = BinaryHeap::new();
+    for (origin, card, direction, steps) in sources.get(&found_hole.unwrap()).unwrap() {
+        let mut quota: Vec<i32> = card_counts.iter().map(|_| 0).collect();
+        quota[cards.iter().position(|c| c == card).unwrap()] += 1;
+        heap.push(Item {
+            steps: *steps,
+            position: *origin,
+            moves: vec![(*card, *direction, *steps)],
+            quota,
+        });
+    }
+
+    // Keep extending the shortest path until we reach the start
+    let mut current = heap.pop().unwrap();
+    while current.position != starting_position {
+        if let Some(moves) = sources.get(&current.position) {
+            for (source, card, direction, steps) in moves {
+                let index = cards.iter().position(|c| c == card).unwrap();
+                current.quota[index] += 1;
+                if current_beating_quota(&current, &card_counts) {
+                    let mut moves = current.moves.clone();
+                    moves.push((*card, *direction, *steps));
+                    heap.push(Item {
+                        steps: current.steps + steps,
+                        position: *source,
+                        moves: moves,
+                        quota: current.quota.clone(),
+                    })
+                }
+                current.quota[index] -= 1;
+            }
+        }
+        current = heap.pop().unwrap(); // assumes heap won't run out
+    }
+    current.moves.reverse();
+    return Some(current.moves);
+}
+
+// confirm move quota has not been exceeded
+fn current_beating_quota(current: &Item, target_quota: &Vec<i32>) -> bool {
+    for i in 0..current.moves.len() {
+        if current.quota[i] > target_quota[i] {
+            return false;
+        }
+    }
+    return true;
 }
 
 fn opposite_direction_of(direction: &Direction) -> Direction {
