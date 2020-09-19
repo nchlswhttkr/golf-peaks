@@ -6,6 +6,7 @@ If you'd like to know more you can [watch it in action](https://vimeo.com/455241
 
 - [Building a Solver for Golf Peaks](https://nicholas.cloud/blog/building-a-solver-for-golf-peaks/)
 - [Speeding Up a Solver for Golf Peaks](https://nicholas.cloud/blog/speeding-up-a-solver-for-golf-peaks/)
+- [A Blazing Fast Solver for Golf Peaks!](https://nicholas.cloud/blog/a-blazing-fast-solver-for-golf-peaks/)
 
 You can find also find instructions on to complete each level in [`solutions.txt`](./solutions.txt).
 

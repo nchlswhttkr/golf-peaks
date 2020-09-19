@@ -13,7 +13,8 @@ data = list(
   "Memoize repeated moves" = load_run("solver-benchmark-04.csv"),
   "Find shortest path" = load_run("solver-benchmark-05.csv"),
   "Disregard nonviable paths" = load_run("solver-benchmark-06.csv"),
-  "Disregard nonviable paths v2" = load_run("solver-benchmark-07.csv")
+  "Disregard nonviable paths v2" = load_run("solver-benchmark-07.csv"),
+  "Ignore duplicate cards" = load_run("solver-benchmark-08.csv")
 )
 
 # Average completion time between runs
@@ -30,7 +31,7 @@ measure_run_times = function(run) {
 run_times = matrix(unlist(lapply(data, measure_run_times)), nrow=length(data), byrow=TRUE)
 
 png(filename="./average-process-execution-time.png", width=800, height=450, res=96)
-par(mar=c(7.5, 4, 4, 1))
+par(mar=c(7.5, 3, 4, 1))
 plot(x=1:length(data), y=run_times[,2], type="n", ylim=c(0, 3), xlab="", xaxt="n", ylab="", frame.plot=FALSE)
 title(main="Average process execution time (seconds)")
 polygon(c(1:length(data), rev(1:length(data))), c(run_times[,1], rev(run_times[,3])), col="grey", border="grey")
