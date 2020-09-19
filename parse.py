@@ -1,10 +1,10 @@
 import sys
 
 slope_orientation_map = {
-    'NW': 'down',
-    'NE': 'left',
-    'SE': 'up',
-    'SW': 'right'
+    'NW': 'south',
+    'NE': 'west',
+    'SE': 'north',
+    'SW': 'east'
 }
 corner_orientation_map = {
     "NW": 'ne',
@@ -14,10 +14,10 @@ corner_orientation_map = {
 }
 
 conveyor_orientation_map = {
-    "NW": 'up',
-    "NE": 'right',
-    "SE": 'down',
-    "SW": 'left'
+    "NW": 'north',
+    "NE": 'east',
+    "SE": 'south',
+    "SW": 'west'
 }
 
 
